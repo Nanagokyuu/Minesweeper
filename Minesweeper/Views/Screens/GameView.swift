@@ -25,7 +25,7 @@ struct GameView: View {
     
     // 【关键】：初始化逻辑
     // 上帝掷骰子的地方，或者你指定上帝掷出几点（如果有 seed）
-    // 【修改】增加 isGodMode 和 isNanagokyuuMode 参数
+    // 【修改】移除了 isNoGuessingMode 参数
     init(difficulty: Difficulty, seed: Int? = nil, isGodMode: Bool = false, isNanagokyuuMode: Bool = false) {
         // 将上帝模式和作者模式状态传递给 ViewModel
         let newGame = MinesweeperGame(
@@ -44,6 +44,7 @@ struct GameView: View {
     var body: some View {
         ZStack {
             // 背景色：平平无奇的灰色，衬托出雷区的惊心动魄
+            // 【修改】systemGroupedBackground 在深色模式下是纯黑
             Color(UIColor.systemGroupedBackground).ignoresSafeArea()
             
             VStack(spacing: 16) {
@@ -108,11 +109,14 @@ struct GameView: View {
                     .foregroundColor(game.gameStatus == .lost ? .gray : .red)
                 let remaining = game.totalMines - game.grid.filter { $0.isFlagged }.count
                 Text("\(remaining)")
+                    // 【修改】文字自适应
+                    .foregroundColor(.primary)
                     .monospacedDigit().fontWeight(.bold)
                     .frame(minWidth: 25, alignment: .leading)
             }
             .padding(.horizontal, 12).padding(.vertical, 8)
-            .background(Color.white).cornerRadius(12)
+            // 【修改】背景自适应：secondarySystemGroupedBackground (深色下是深灰，浅色下是白)
+            .background(Color(UIColor.secondarySystemGroupedBackground)).cornerRadius(12)
             .shadow(color: .black.opacity(0.05), radius: 2)
             
             Spacer()
@@ -124,20 +128,23 @@ struct GameView: View {
                 withAnimation { game.startNewGame() }
                 HapticManager.shared.light()
             }) {
-                VStack(spacing: 0) {
-                    // 如果是上帝模式，显示一个特殊的图标
-                    // 如果是倒霉蛋模式，显示一个哭脸
-                    if game.isNanagokyuuMode {
-                        Text("🤡").font(.headline)
-                    } else if game.isGodMode {
-                        Text("👁️").font(.headline)
-                    } else {
-                        Text(game.difficulty.icon).font(.headline)
+                ZStack {
+                    VStack(spacing: 0) {
+                        // 如果是上帝模式，显示一个特殊的图标
+                        // 如果是倒霉蛋模式，显示一个哭脸
+                        if game.isNanagokyuuMode {
+                            Text("🤡").font(.headline)
+                        } else if game.isGodMode {
+                            Text("👁️").font(.headline)
+                        } else {
+                            Text(game.difficulty.icon).font(.headline)
+                        }
                     }
+                    .frame(width: 44, height: 44)
+                    // 【修改】背景自适应
+                    .background(Color(UIColor.secondarySystemGroupedBackground)).clipShape(Circle())
+                    .shadow(color: .black.opacity(0.05), radius: 2)
                 }
-                .frame(width: 44, height: 44)
-                .background(Color.white).clipShape(Circle())
-                .shadow(color: .black.opacity(0.05), radius: 2)
             }
             // 长按笑脸 = 随机新种子：这局太背了，换个风水
             .onLongPressGesture {
@@ -151,11 +158,14 @@ struct GameView: View {
             HStack(spacing: 4) {
                 Image(systemName: "clock.fill").foregroundColor(.blue)
                 Text(formatTime(game.timeElapsed))
+                    // 【修改】文字自适应
+                    .foregroundColor(.primary)
                     .monospacedDigit().fontWeight(.bold)
                     .frame(minWidth: 45, alignment: .trailing)
             }
             .padding(.horizontal, 12).padding(.vertical, 8)
-            .background(Color.white).cornerRadius(12)
+            // 【修改】背景自适应
+            .background(Color(UIColor.secondarySystemGroupedBackground)).cornerRadius(12)
             .shadow(color: .black.opacity(0.05), radius: 2)
         }
         .padding(.horizontal).padding(.top)

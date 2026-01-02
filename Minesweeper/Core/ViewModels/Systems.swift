@@ -36,7 +36,8 @@ extension MinesweeperGame {
     
     func saveGameRecord(isWin: Bool) {
         // 上帝模式下的成绩不计入历史，保持排行榜的纯洁性
-        if isGodMode { return }
+        // 【修改】Nanagokyuu 模式也不计入，毕竟是来搞笑的，留着黑历史干嘛，怪丢人的
+        if isGodMode || isNanagokyuuMode { return }
         
         let diffName = getDifficultyName(difficulty)
         let newRecord = GameRecord(

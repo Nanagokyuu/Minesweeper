@@ -23,6 +23,14 @@ class MinesweeperGame: ObservableObject {
     // 也就是所谓的“落地成盒”模式，专门用来坑那些以为输入作者名字会有什么好果子吃的人
     @Published var isNanagokyuuMode: Bool = false
     
+    // MARK: - 无猜模式逻辑 (No Guessing Mode)
+    // 【修改】不再作为可选项，而是默认机制
+    // 只要不是地狱模式，默认开启无猜保护，拒绝二选一
+    // 地狱模式？那是给受虐狂准备的，不需要公平，只需要绝望
+    var isNoGuessingMode: Bool {
+        return difficulty != .hell
+    }
+    
     // MARK: - 历史记录
     @Published var history: [GameRecord] = []
     
@@ -48,11 +56,12 @@ class MinesweeperGame: ObservableObject {
     var cols: Int { difficulty.cols }
     var totalMines: Int { difficulty.totalMines }
     
-    // 【修改】初始化方法增加 isNanagokyuuMode 参数
+    // 【修改】移除了 isNoGuessingMode 参数，因为现在它是内置规则
     init(difficulty: Difficulty = .easy, isGodMode: Bool = false, isNanagokyuuMode: Bool = false) {
         self.difficulty = difficulty
         self.isGodMode = isGodMode // 设置上帝模式状态
         self.isNanagokyuuMode = isNanagokyuuMode // 注入霉运
+        
         // 初始化时随机生成一个种子并开始,命运的齿轮开始转动
         startNewGame()
     }

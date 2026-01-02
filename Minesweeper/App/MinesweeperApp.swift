@@ -15,8 +15,9 @@ struct MinesweeperApp: App {
         WindowGroup {
             ContentView()
                 .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
-                .preferredColorScheme(.light) // 强制浅色模式，未来也许会改，现在先这么待着吧
+                // 【删除】删掉了 .preferredColorScheme(.light)
+                // 现在系统是什么模式，App 就是什么模式
+                // 之前一直都是浅色模式，大晚上还是有可能闪瞎眼的
         }
     }
 }
-

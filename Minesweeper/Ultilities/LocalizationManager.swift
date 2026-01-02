@@ -135,6 +135,10 @@ enum LocalizedKey {
     case modeDigging
     case modeFlagging
     
+    // 【新增】无猜模式相关
+    case modeNoGuessing
+    case solverFailed
+    
     // 规则说明
     case ruleDig
     case ruleFlag
@@ -224,10 +228,13 @@ enum LocalizedKey {
         case .difficultyMedium: return "普通"
         case .difficultyHard: return "困难"
         case .difficultyHell: return "地狱"
-        case .minesSuffix: return "个雷" // 【新增】
+        case .minesSuffix: return "个雷"
             
         case .modeDigging: return "挖雷"
         case .modeFlagging: return "插旗"
+        
+        case .modeNoGuessing: return "无猜模式"
+        case .solverFailed: return "你的运气有点背……自求多福吧"
             
         case .ruleDig: return "切换至[挖雷]模式翻开格子"
         case .ruleFlag: return "切换至[插旗]模式标记地雷"
@@ -293,10 +300,13 @@ enum LocalizedKey {
         case .difficultyMedium: return "普通"
         case .difficultyHard: return "困難"
         case .difficultyHell: return "地獄"
-        case .minesSuffix: return "個地雷" // 【新增】
+        case .minesSuffix: return "個地雷"
             
         case .modeDigging: return "挖雷"
         case .modeFlagging: return "插旗"
+            
+        case .modeNoGuessing: return "無猜模式"
+        case .solverFailed: return "你的運氣有點背……自求多福吧"
             
         case .ruleDig: return "切換至[挖雷]模式翻開格子"
         case .ruleFlag: return "切換至[插旗]模式標記地雷"
@@ -362,10 +372,13 @@ enum LocalizedKey {
         case .difficultyMedium: return "Medium"
         case .difficultyHard: return "Hard"
         case .difficultyHell: return "Hell"
-        case .minesSuffix: return " Mines" // 【新增】注意空格
+        case .minesSuffix: return " Mines"
             
         case .modeDigging: return "Dig"
         case .modeFlagging: return "Flag"
+            
+        case .modeNoGuessing: return "No Guessing"
+        case .solverFailed: return "Luck is not on your side... Good luck."
             
         case .ruleDig: return "Switch to [Dig] mode to reveal cells"
         case .ruleFlag: return "Switch to [Flag] mode to mark mines"
@@ -431,10 +444,13 @@ enum LocalizedKey {
         case .difficultyMedium: return "普通"
         case .difficultyHard: return "難しい"
         case .difficultyHell: return "地獄"
-        case .minesSuffix: return "個" // 【新增】
+        case .minesSuffix: return "個"
             
         case .modeDigging: return "掘る"
         case .modeFlagging: return "旗"
+            
+        case .modeNoGuessing: return "運任せなし"
+        case .solverFailed: return "運が悪かったね……健闘を祈る"
             
         case .ruleDig: return "[掘る]モードでマスを開く"
         case .ruleFlag: return "[旗]モードで地雷をマーク"
@@ -500,10 +516,13 @@ enum LocalizedKey {
         case .difficultyMedium: return "보통"
         case .difficultyHard: return "어려움"
         case .difficultyHell: return "지옥"
-        case .minesSuffix: return "개의 지뢰" // 【新增】
+        case .minesSuffix: return "개의 지뢰"
             
         case .modeDigging: return "파기"
         case .modeFlagging: return "깃발"
+            
+        case .modeNoGuessing: return "운빨 금지"
+        case .solverFailed: return "운이 좀 없었네요... 행운을 빕니다."
             
         case .ruleDig: return "[파기] 모드로 칸 열기"
         case .ruleFlag: return "[깃발] 모드로 지뢰 표시"
@@ -554,7 +573,7 @@ enum LocalizedKey {
         case .start: return "Старт"
         case .ok: return "ОК"
             
-        case .gameTitle: return "Сапёр" // 经典的 Сапёр
+        case .gameTitle: return "Сапёр"
         case .selectDifficulty: return "Сложность"
         case .startGame: return "Начать игру"
         case .exitGame: return "Закончить игру"
@@ -569,10 +588,13 @@ enum LocalizedKey {
         case .difficultyMedium: return "Средне"
         case .difficultyHard: return "Сложно"
         case .difficultyHell: return "Ад"
-        case .minesSuffix: return " мин" // 注意前面的空格
+        case .minesSuffix: return " мин"
             
         case .modeDigging: return "Копать"
         case .modeFlagging: return "Флаг"
+            
+        case .modeNoGuessing: return "Без догадок"
+        case .solverFailed: return "Не повезло... Удачи в следующий раз."
             
         case .ruleDig: return "Режим [Копать] открывает клетки"
         case .ruleFlag: return "Режим [Флаг] ставит метки"
@@ -643,6 +665,9 @@ enum LocalizedKey {
         case .modeDigging: return "Creuser"
         case .modeFlagging: return "Drapeau"
             
+        case .modeNoGuessing: return "Sans deviner"
+        case .solverFailed: return "Pas de chance... Bonne chance."
+            
         case .ruleDig: return "Mode [Creuser] pour révéler"
         case .ruleFlag: return "Mode [Drapeau] pour marquer"
         case .ruleSeed: return "Même graine pour un duel équitable"
@@ -680,7 +705,6 @@ enum LocalizedKey {
     }
     
     // MARK: - العربية (阿拉伯语)
-    // 注意：SwiftUI 会自动处理布局镜像，你只需要提供文字
     private var localizedArabic: String {
         switch self {
         case .close: return "إغلاق"
@@ -708,10 +732,13 @@ enum LocalizedKey {
         case .difficultyMedium: return "متوسط"
         case .difficultyHard: return "صعب"
         case .difficultyHell: return "جحيم"
-        case .minesSuffix: return " ألغام" // 阿拉伯语复数很复杂，这里用通用的形式
+        case .minesSuffix: return " ألغام"
             
         case .modeDigging: return "حفر"
         case .modeFlagging: return "عَلَم"
+        
+        case .modeNoGuessing: return "بدون تخمين"
+        case .solverFailed: return "حظ سيء... بالتوفيق."
             
         case .ruleDig: return "وضع [حفر] لكشف الخلايا"
         case .ruleFlag: return "وضع [عَلَم] لتمييز الألغام"
@@ -747,11 +774,5 @@ enum LocalizedKey {
         case .goodLuck: return "حظاً موفقاً"
         case .betterLuckNextTime: return "حظاً أوفر في المرة القادمة."
         }
-    }
-}
-// MARK: - 便捷扩展
-extension View {
-    func localized(_ key: LocalizedKey) -> String {
-        LocalizationManager.shared.text(key)
     }
 }

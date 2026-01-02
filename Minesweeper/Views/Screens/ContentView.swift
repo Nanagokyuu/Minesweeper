@@ -45,7 +45,8 @@ struct ContentView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color.mainGradient.ignoresSafeArea() // 渐变是灵魂（虽然现在是五彩斑斓的白）
+                // 背景色自适应：深色模式下变黑，浅色下变白
+                Color.mainGradient.ignoresSafeArea()
                 
                 // 【修改点 1】：全局间距从 30 压缩到 15
                 VStack(spacing: 15) {
@@ -73,7 +74,8 @@ struct ContentView: View {
                         Text(localization.text(.gameTitle))
                             // 【修改点 3】：标题文字稍微改小
                             .font(.system(size: 28, weight: .heavy, design: .rounded))
-                            .foregroundColor(.black)
+                            // 【修改】文字颜色自适应 (.primary)
+                            .foregroundColor(.primary)
                             .tracking(2)
                     }
                     
@@ -81,7 +83,8 @@ struct ContentView: View {
                     VStack(alignment: .leading, spacing: 10) {
                         Text(localization.text(.selectDifficulty))
                             .font(.headline)
-                            .foregroundColor(.black)
+                            // 【修改】文字颜色自适应 (.primary)
+                            .foregroundColor(.primary)
                             .padding(.bottom, 2)
                         
                         ForEach(Difficulty.allCases.filter { $0 != .hell }, id: \.self) { difficulty in
@@ -105,7 +108,7 @@ struct ContentView: View {
                         RuleRow(icon: "flag.fill", text: localization.text(.ruleFlag))
                         RuleRow(icon: "number.square", text: localization.text(.ruleSeed))
                     }
-                    .colorMultiply(.black)
+                    // 【修改】移除了 .colorMultiply(.black)，让 RuleRow 内部的 .primary 生效
                     .padding(16)
                     .background(.ultraThinMaterial)
                     .cornerRadius(20)
@@ -115,6 +118,7 @@ struct ContentView: View {
                     
                     // 底部按钮区域
                     VStack(spacing: 15) {
+                        
                         // 自定义种子入口
                         Button(action: {
                             seedInputText = ""
@@ -154,8 +158,11 @@ struct ContentView: View {
                 .padding(.top, 10)
             }
             .toolbar {
+                // MARK: - 极简风格适配
+                // 去掉了所有背景和复杂的对齐逻辑，回归纯粹
+                
+                // 左侧：语言切换
                 ToolbarItem(placement: .navigationBarLeading) {
-                    // 语言切换按钮：国旗+下拉箭头，点击进入语言选择
                     Button(action: {
                         showLanguageSettings = true
                         HapticManager.shared.light()
@@ -164,26 +171,25 @@ struct ContentView: View {
                             Text(localization.currentLanguage.flag)
                                 .font(.title3)
                             Image(systemName: "chevron.down")
-                                .font(.caption2)
-                                .foregroundColor(.gray)
+                                .font(.footnote)
+                                .fontWeight(.bold)
+                                .foregroundColor(.secondary)
                         }
-                        .padding(8)
-                        .background(.ultraThinMaterial) // 玻璃质感：语言选择也要有仪式感
-                        .clipShape(Capsule())
+                        // 既然不要背景，padding 也不需要那么大了，系统默认的点击区域足够
+                        .padding(.vertical, 4)
+                        .contentShape(Rectangle()) // 增加一点点击热区
                     }
                 }
                 
+                // 右侧：历史记录
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: {
                         showHistory = true
                         HapticManager.shared.light()
                     }) {
                         Image(systemName: "clock.arrow.circlepath")
-                            .font(.title3)
-                            .foregroundColor(.black)
-                            .padding(8)
-                            .background(.ultraThinMaterial) // 玻璃质感：历史也需要仪式感
-                            .clipShape(Circle())
+                            .font(.title3) // 恢复到稍微大一点的尺寸，因为没有圈圈限制了
+                            .foregroundColor(.primary)
                     }
                 }
             }
@@ -206,8 +212,7 @@ struct ContentView: View {
                     if lowerText == "cytimax" {
                         triggerGodMode = true
                         triggerNanagokyuuMode = false
-                        // 【核心修改】这里改成 nil，让游戏引擎去生成随机种子
-                        // 这样每次输入 Cytimax，都会是一局全新的、但是透视的排雷局
+                        // 上帝模式不需要无猜逻辑，上帝全知全能
                         customSeedToPlay = nil
                         gameID = UUID()
                         isGameStarted = true
@@ -218,7 +223,8 @@ struct ContentView: View {
                         // 既然你输入了这个名字，那就要做好心理准备
                         triggerNanagokyuuMode = true
                         triggerGodMode = false
-                        customSeedToPlay = nil // 这里的随机种子已经没有意义了，因为结局已注定
+                        // 倒霉蛋模式下，逻辑救不了你
+                        customSeedToPlay = nil
                         gameID = UUID()
                         isGameStarted = true
                         // 给个震动，让玩家以为触发了什么隐藏福利，其实是隐藏陷阱
@@ -228,6 +234,7 @@ struct ContentView: View {
                         // 正常的数字种子逻辑
                         triggerGodMode = false
                         triggerNanagokyuuMode = false
+                        // 公平对决：没有借口，只有水平
                         customSeedToPlay = seed
                         gameID = UUID()
                         isGameStarted = true
@@ -235,12 +242,12 @@ struct ContentView: View {
                 })
                 Button(localization.text(.cancel), role: .cancel) { }
             } message: {
-                Text(localization.text(.inputSeedMessage)) // 公平对决：没有借口，只有水平
+                Text(localization.text(.inputSeedMessage))
             }
             .navigationDestination(isPresented: $isGameStarted) {
                 // 这里我们传入 gameID 作为视图的身份标识
                 // 当 gameID 变化时，SwiftUI 必须丢弃旧视图，重新执行 GameView.init()
-                // 【修改】传入 isGodMode 和 isNanagokyuuMode 参数
+                // 【修改】移除了 isNoGuessingMode 参数，因为内部逻辑会自动判断
                 GameView(
                     difficulty: selectedDifficulty,
                     seed: customSeedToPlay,

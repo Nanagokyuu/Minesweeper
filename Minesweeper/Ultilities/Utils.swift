@@ -27,9 +27,15 @@ class HapticManager {
 
 // MARK: - 颜色扩展
 extension Color {
-    // 真相大白时的颜色，通常意味着安全（或者你已经炸了）
-    static let cellRevealed = Color.white
+    // 真相大白时的颜色
+    // 【修改】为了保证数字颜色的可读性（比如深蓝色在黑色背景上看不清），
+    // 翻开的格子我们依然保持亮色（或者稍微灰一点），这样经典的数字配色才不会瞎眼
+    // 如果你希望翻开也是黑的，那整套数字颜色都得重写，工程量巨大且容易丑
+    // 这里使用 systemBackground 可以让它在深色模式下变成黑色，但为了数字清晰，我们暂时保持 .white
+    // 或者你可以换成 Color(UIColor.secondarySystemGroupedBackground) 试试效果
+    static let cellRevealed = Color(UIColor.secondarySystemGroupedBackground)
     
-    // 虽然叫渐变，但其实就是白色，一种五彩斑斓的白，简约（陋）美学
-    static let mainGradient = Color.white
+    // 【修改】背景色改为系统自适应背景
+    // 浅色模式是白，深色模式是黑
+    static let mainGradient = Color(UIColor.systemBackground)
 }

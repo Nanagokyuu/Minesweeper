@@ -21,7 +21,9 @@ struct ModeButton: View {
                 Text(title).font(.caption).fontWeight(.bold)
             }
             .frame(maxWidth: .infinity).frame(height: 70)
-            .background(isSelected ? color : Color.white)
+            // 【修改】背景色自适应：选中时保持彩色，未选中时适应深色模式(变黑灰)
+            .background(isSelected ? color : Color(UIColor.secondarySystemGroupedBackground))
+            // 【修改】文字颜色自适应：选中时白，未选中时适应系统(黑变白)
             .foregroundColor(isSelected ? .white : .gray)
             .cornerRadius(15)
             .shadow(color: isSelected ? color.opacity(0.4) : Color.black.opacity(0.05),
@@ -49,7 +51,9 @@ struct DifficultyButton: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(difficulty.localizedName(localization: localization))
                         .font(.headline).fontWeight(.bold)
-                    // 【修正】使用 localizedDescription 以支持多语言后缀
+                        // 【修改】移除硬编码颜色，默认使用 Primary (自动黑白反转)
+                        .foregroundColor(.primary)
+                    
                     Text(difficulty.localizedDescription(localization: localization))
                         .font(.caption).foregroundColor(.secondary)
                 }
@@ -60,7 +64,8 @@ struct DifficultyButton: View {
                 }
             }
             .padding()
-            .background(isSelected ? Color.white : Color.white.opacity(0.5))
+            // 【修改】背景使用系统二级分组背景，深色模式下会是深灰色
+            .background(isSelected ? Color(UIColor.secondarySystemGroupedBackground) : Color(UIColor.secondarySystemGroupedBackground).opacity(0.5))
             .cornerRadius(12)
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
@@ -77,8 +82,10 @@ struct RuleRow: View {
     let icon: String, text: String
     var body: some View {
         HStack(spacing: 15) {
-            Image(systemName: icon).foregroundColor(.white).frame(width: 24)
-            Text(text).font(.subheadline).fontWeight(.medium).foregroundColor(.white.opacity(0.9))
+            // 【修改】图标和文字颜色改为 .primary (自动黑白)
+            // 之前这里为了配合 .colorMultiply(.black) 写死了 .white，现在改回来
+            Image(systemName: icon).foregroundColor(.primary).frame(width: 24)
+            Text(text).font(.subheadline).fontWeight(.medium).foregroundColor(.primary.opacity(0.9))
         }
     }
 }
