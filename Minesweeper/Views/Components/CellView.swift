@@ -52,7 +52,7 @@ struct CellView: View, Equatable {
                     
                     if cell.isFlagged {
                         Image(systemName: theme.flagIcon)
-                            .foregroundColor(.orange) // 旗子颜色暂且不动，醒目为主
+                            .foregroundColor(.orange)
                             .font(.system(size: geometry.size.width * 0.5))
                             .shadow(radius: 1)
                             // 【新增】旗帜弹性动画
@@ -71,18 +71,18 @@ struct CellView: View, Equatable {
                     axis: (x: 0, y: 1, z: 0)
                 )
                 .opacity(cell.isRevealed ? 0 : 1)
-                .zIndex(cell.isRevealed ? 0 : 1) // 未翻开时在上层
+                .zIndex(cell.isRevealed ? 0 : 1)
                 
                 // 正面 - 翻开后状态
                 Group {
                     RoundedRectangle(cornerRadius: 6)
                         // 【核心修改】皮肤适配：爆炸时的背景色
-                        // 经典模式是红色(血)，花圃模式是棕色(土)
-                        .fill(cell.isMine ? theme.explodedColor.opacity(0.8) : Color.cellRevealed)
+                        // 地雷翻开时与数字格保持相同底色，深色模式下不再突兀
+                        .foregroundColor(cell.isMine && cell.isTriggeredMine ? .red : Color.cellRevealed)
                         // 【新增】爆炸时的闪烁效果
                         .overlay(
                             RoundedRectangle(cornerRadius: 6)
-                                .fill(theme.explodedColor) // 闪烁也跟随主题颜色
+                                .fill(theme.explodedColor)
                                 .opacity(cell.isExploding ? 0.8 : 0.0)
                                 .animation(.easeInOut(duration: 0.15).repeatCount(2, autoreverses: true), value: cell.isExploding)
                         )
@@ -118,11 +118,11 @@ struct CellView: View, Equatable {
                     }
                 }
                 .opacity(cell.isRevealed ? 1 : 0)
-                .zIndex(cell.isRevealed ? 1 : 0) // 翻开后在上层
+                .zIndex(cell.isRevealed ? 1 : 0)
                 
                 // 【新增】爆炸粒子效果 - 在格子爆炸时显示
                 if cell.isExploding {
-                    ExplosionParticles(color: theme.explodedColor) // 粒子颜色也得跟着变，泥土飞溅嘛
+                    ExplosionParticles(color: theme.explodedColor)
                 }
             }
             // 【修复】整体翻转效果 - 减速到0.6秒,阻尼改为0.75让动画更平滑

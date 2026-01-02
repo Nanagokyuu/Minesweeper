@@ -67,6 +67,8 @@ struct Cell: Identifiable {
     var animationDelay: Double = 0.0
     // 【新增】爆炸动画状态 - 让炸弹更有冲击力
     var isExploding: Bool = false
+    // 【新增】标记玩家点中的那颗雷
+    var isTriggeredMine: Bool = false
 }
 
 // MARK: - 游戏状态

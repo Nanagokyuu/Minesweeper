@@ -55,6 +55,7 @@ extension MinesweeperGame {
         
         if grid[index].isMine {
             // 【改进】先翻开第一个雷,再触发连锁爆炸
+            grid[index].isTriggeredMine = true
             grid[index].isRevealed = true
             HapticManager.shared.heavy()
             
@@ -86,33 +87,24 @@ extension MinesweeperGame {
     }
     
     // MARK: - 极速双击
-    // 是有人提过一嘴,当时我还没什么概念,这是我后来看别人玩扫雷的时候才知道的
-    // 高端玩家的必备技能,手残党的噩梦
     func quickReveal(at index: Int) {
         guard gameStatus == .playing else { return }
         let cell = grid[index]
-        // 只有"已揭示"且"是数字(大于0)"的格子才响应此操作
         guard cell.isRevealed && cell.neighborMines > 0 else { return }
         
         let neighbors = getNeighbors(index: index)
         let flaggedCount = neighbors.filter { grid[$0].isFlagged }.count
         
-        // 判定:只有旗帜数量等于数字时才触发
         if flaggedCount == cell.neighborMines {
             var didReveal = false
             for neighborIndex in neighbors {
-                // 只处理没开过且没插旗的格子
                 if !grid[neighborIndex].isRevealed && !grid[neighborIndex].isFlagged {
-                    // 直接复用 revealCell
-                    // 注意:revealCell 内部会自动执行 recordMove(.reveal),
-                    // 所以不需要单独记录 chord 动作,回放时看起来就像快速连续点击
                     revealCell(at: neighborIndex)
                     didReveal = true
                 }
             }
             if didReveal { HapticManager.shared.light() }
         } else {
-            // 旗子不够或者多了,给个震动提示:你算错了
             HapticManager.shared.failure()
         }
     }
@@ -134,9 +126,17 @@ extension MinesweeperGame {
     func gameOver(win: Bool) {
         stopTimer()
         gameStatus = win ? .won : .lost
+        if win { revealAllSafeCells() } // 胜利时自动翻开所有非雷格
         saveGameRecord(isWin: win)
         withAnimation(.spring()) { showResult = true }
         if win { HapticManager.shared.success() }
         else { HapticManager.shared.failure() }
+    }
+    
+    // MARK: - 胜利后自动翻开所有安全格
+    func revealAllSafeCells() {
+        for i in 0..<grid.count where !grid[i].isMine {
+            grid[i].isRevealed = true
+        }
     }
 }

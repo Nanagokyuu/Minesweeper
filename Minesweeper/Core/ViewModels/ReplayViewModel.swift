@@ -247,4 +247,17 @@ class ReplayViewModel: ObservableObject {
             }
         }
     }
+    
+    // 胜利后自动翻开所有安全格（回放）
+    private func revealAllSafeCellsForReplay() {
+        for i in 0..<grid.count where !grid[i].isMine {
+            grid[i].isRevealed = true
+        }
+    }
+    
+    private func updateCompletionStateIfNeeded() {
+        if record.isWin && currentStepIndex >= moves.count {
+            revealAllSafeCellsForReplay()
+        }
+    }
 }
