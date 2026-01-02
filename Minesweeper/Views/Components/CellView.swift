@@ -14,6 +14,8 @@ struct CellView: View, Equatable {
     let cell: Cell
     // 【新增】接收上帝模式状态
     let isGodMode: Bool
+    // 【新增】接收皮肤主题，不然它怎么知道该长成地雷还是花朵
+    let theme: GameTheme
     
     // 【优化点 1】:实现自定义比较函数
     // 告诉 SwiftUI:只有当这些影响外观的属性改变时,才认为这两个 View 不同,需要重绘
@@ -24,7 +26,9 @@ struct CellView: View, Equatable {
                lhs.cell.isMine == rhs.cell.isMine &&
                lhs.cell.neighborMines == rhs.cell.neighborMines &&
                // 【关键】必须比较 isGodMode，否则切换模式后格子不会刷新
-               lhs.isGodMode == rhs.isGodMode
+               lhs.isGodMode == rhs.isGodMode &&
+               // 【关键】皮肤变了当然也要重绘
+               lhs.theme == rhs.theme
     }
     
     var body: some View {
@@ -34,8 +38,9 @@ struct CellView: View, Equatable {
                 // 背面 - 未翻开状态
                 Group {
                     RoundedRectangle(cornerRadius: 6)
-                        // 【核心修改】致敬 Cytimax：上帝模式下，地雷显示为橙色背景
-                        .fill(isGodMode && cell.isMine ? Color.orange : Color.blue)
+                        // 【核心修改】皮肤适配：如果是花圃模式，这里会是绿色；经典模式是蓝色
+                        // 上帝模式下，地雷依然显示为橙色背景，这是绝对法则
+                        .fill(isGodMode && cell.isMine ? Color.orange : theme.coveredColor)
                         .overlay(
                             RoundedRectangle(cornerRadius: 6)
                                 .fill(LinearGradient(
@@ -46,8 +51,8 @@ struct CellView: View, Equatable {
                         .shadow(color: .black.opacity(0.2), radius: 1, x: 0, y: 2)
                     
                     if cell.isFlagged {
-                        Image(systemName: "flag.fill")
-                            .foregroundColor(.orange)
+                        Image(systemName: theme.flagIcon)
+                            .foregroundColor(.orange) // 旗子颜色暂且不动，醒目为主
                             .font(.system(size: geometry.size.width * 0.5))
                             .shadow(radius: 1)
                             // 【新增】旗帜弹性动画
@@ -71,38 +76,32 @@ struct CellView: View, Equatable {
                 // 正面 - 翻开后状态
                 Group {
                     RoundedRectangle(cornerRadius: 6)
-                        .fill(cell.isMine ? Color.red.opacity(0.2) : Color.cellRevealed)
+                        // 【核心修改】皮肤适配：爆炸时的背景色
+                        // 经典模式是红色(血)，花圃模式是棕色(土)
+                        .fill(cell.isMine ? theme.explodedColor.opacity(0.8) : Color.cellRevealed)
                         // 【新增】爆炸时的闪烁效果
                         .overlay(
                             RoundedRectangle(cornerRadius: 6)
-                                .fill(Color.red)
+                                .fill(theme.explodedColor) // 闪烁也跟随主题颜色
                                 .opacity(cell.isExploding ? 0.8 : 0.0)
                                 .animation(.easeInOut(duration: 0.15).repeatCount(2, autoreverses: true), value: cell.isExploding)
                         )
                     
                     if cell.isMine {
-                        // 【新增】显示双层图标：炸弹 + 💥
-                        ZStack {
-                            // 💥 emoji 在底层
-                            Text("💥")
-                                .font(.system(size: geometry.size.width * 0.65))
-                                .opacity(0.9)
-                            
-                            // 炸弹图标在上层
-                            Image(systemName: "bomb.fill") // 惊喜还是惊吓?翻开就知道
-                                .foregroundColor(cell.isExploding ? .white : .red)
-                                .font(.system(size: geometry.size.width * 0.5))
-                        }
-                        // 【改进】爆炸时的强烈动画效果
-                        .scaleEffect(cell.isExploding ? 1.5 : (cell.isRevealed ? 1.0 : 0.1))
-                        .rotationEffect(.degrees(cell.isExploding ? 360 : 0))
-                        .animation(.spring(response: 0.5, dampingFraction: 0.6), value: cell.isRevealed)
-                        .animation(.easeOut(duration: 0.2), value: cell.isExploding)
-                        // 【关键修复】正面内容反向旋转180度抵消镜像
-                        .rotation3DEffect(
-                            .degrees(180),
-                            axis: (x: 0, y: 1, z: 0)
-                        )
+                        // 【关键修复】不再叠加显示，只显示爆炸结果
+                        // 之前把炸弹和爆炸符叠在一起确实太蠢了，我的锅，现在只显示一个干净的图标
+                        Text(theme.explosionIcon)
+                            .font(.system(size: geometry.size.width * 0.7))
+                            // 【改进】爆炸时的强烈动画效果
+                            .scaleEffect(cell.isExploding ? 1.5 : (cell.isRevealed ? 1.0 : 0.1))
+                            .rotationEffect(.degrees(cell.isExploding ? 360 : 0))
+                            .animation(.spring(response: 0.5, dampingFraction: 0.6), value: cell.isRevealed)
+                            .animation(.easeOut(duration: 0.2), value: cell.isExploding)
+                            // 【关键修复】正面内容反向旋转180度抵消镜像
+                            .rotation3DEffect(
+                                .degrees(180),
+                                axis: (x: 0, y: 1, z: 0)
+                            )
                     } else if cell.neighborMines > 0 {
                         Text("\(cell.neighborMines)")
                             .font(.system(size: geometry.size.width * 0.7, weight: .heavy, design: .rounded))
@@ -123,7 +122,7 @@ struct CellView: View, Equatable {
                 
                 // 【新增】爆炸粒子效果 - 在格子爆炸时显示
                 if cell.isExploding {
-                    ExplosionParticles()
+                    ExplosionParticles(color: theme.explodedColor) // 粒子颜色也得跟着变，泥土飞溅嘛
                 }
             }
             // 【修复】整体翻转效果 - 减速到0.6秒,阻尼改为0.75让动画更平滑
@@ -148,13 +147,14 @@ struct CellView: View, Equatable {
 // MARK: - 【新增】爆炸粒子效果
 // 让爆炸更有视觉冲击力
 struct ExplosionParticles: View {
+    let color: Color // 接收主题颜色
     @State private var isAnimating = false
     
     var body: some View {
         ZStack {
             ForEach(0..<4) { i in
                 Circle()
-                    .fill(Color.orange)
+                    .fill(Color.orange) // 火花还是保留橙色比较像样
                     .frame(width: 4, height: 4)
                     .offset(
                         x: isAnimating ? cos(Double(i) * .pi / 2) * 15 : 0,
@@ -165,7 +165,7 @@ struct ExplosionParticles: View {
             
             ForEach(0..<4) { i in
                 Circle()
-                    .fill(Color.red)
+                    .fill(color) // 第二层粒子使用主题色（红色碎片 或 棕色泥土）
                     .frame(width: 3, height: 3)
                     .offset(
                         x: isAnimating ? cos(Double(i) * .pi / 2 + .pi / 4) * 12 : 0,

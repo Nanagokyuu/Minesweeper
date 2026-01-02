@@ -135,3 +135,44 @@ extension Difficulty {
         return "\(rows)×\(cols) · \(totalMines)\(localization.text(.minesSuffix))"
     }
 }
+
+// MARK: - 【新增】皮肤主题系统
+// 既然要换肤，那就换个彻底，从图标到颜色全部参数化
+struct GameTheme: Equatable {
+    let name: String
+    
+    // 图标篇
+    let mainIcon: String      // 主页那个大大的图标
+    let mineIcon: String      // 还没炸的时候显示啥
+    let explosionIcon: String // 炸开那一瞬间显示啥
+    let flagIcon: String      // 插旗的图标
+    
+    // 颜色篇
+    let coveredColor: Color   // 没翻开时的颜色 (经典蓝 vs 草地绿)
+    let explodedColor: Color  // 炸开时的背景色 (经典红 vs 泥土褐)
+    
+    // 经典皮肤：原汁原味的 Windows 风格
+    static let classic = GameTheme(
+        name: "Classic",
+        mainIcon: "💣",
+        mineIcon: "💣",
+        explosionIcon: "💥",   // Emoji
+        flagIcon: "flag.fill",
+        coveredColor: .blue,
+        explodedColor: .white
+    )
+    
+    // 花圃皮肤：致敬 Vista，把地雷变成花，把爆炸变成挖到土
+    static let flower = GameTheme(
+        name: "Flower",
+        mainIcon: "🌼",
+        // 【关键修复】：这里不能用 "flower.fill"，因为 iOS 没有这个图标
+        // 直接改成 Emoji "🌼"，这样显示绝对不会错！
+        mineIcon: "🌼",
+        // 爆炸也显示花朵，或者也可以换成 "🌸"
+        explosionIcon: "🌼",
+        flagIcon: "flag.fill",   // 旗子保持原样
+        coveredColor: .green,    // 绿油油的草地
+        explodedColor: .white
+    )
+}

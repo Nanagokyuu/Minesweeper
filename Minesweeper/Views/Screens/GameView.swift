@@ -25,11 +25,12 @@ struct GameView: View {
     
     // 【关键】：初始化逻辑
     // 上帝掷骰子的地方，或者你指定上帝掷出几点（如果有 seed）
-    // 【修改】移除了 isNoGuessingMode 参数
-    init(difficulty: Difficulty, seed: Int? = nil, isGodMode: Bool = false, isNanagokyuuMode: Bool = false) {
+    // 【修改】增加了 theme 参数，接收从主页传过来的皮肤设置
+    init(difficulty: Difficulty, seed: Int? = nil, theme: GameTheme = .classic, isGodMode: Bool = false, isNanagokyuuMode: Bool = false) {
         // 将上帝模式和作者模式状态传递给 ViewModel
         let newGame = MinesweeperGame(
             difficulty: difficulty,
+            theme: theme, // 传入皮肤
             isGodMode: isGodMode,
             isNanagokyuuMode: isNanagokyuuMode
         )
@@ -44,7 +45,6 @@ struct GameView: View {
     var body: some View {
         ZStack {
             // 背景色：平平无奇的灰色，衬托出雷区的惊心动魄
-            // 【修改】systemGroupedBackground 在深色模式下是纯黑
             Color(UIColor.systemGroupedBackground).ignoresSafeArea()
             
             VStack(spacing: 16) {
@@ -105,17 +105,21 @@ struct GameView: View {
         HStack {
             // 剩余雷数：你的 KPI，不归零就别想下班
             HStack(spacing: 4) {
-                Image(systemName: "bomb.fill")
-                    .foregroundColor(game.gameStatus == .lost ? .gray : .red)
+                // 【修改】图标跟随皮肤变化：是炸弹还是花朵？
+                if UIImage(systemName: game.currentTheme.mineIcon) != nil {
+                    Image(systemName: game.currentTheme.mineIcon)
+                        .foregroundColor(game.gameStatus == .lost ? .gray : game.currentTheme.explodedColor)
+                } else {
+                    Text(game.currentTheme.mineIcon)
+                }
+                
                 let remaining = game.totalMines - game.grid.filter { $0.isFlagged }.count
                 Text("\(remaining)")
-                    // 【修改】文字自适应
                     .foregroundColor(.primary)
                     .monospacedDigit().fontWeight(.bold)
                     .frame(minWidth: 25, alignment: .leading)
             }
             .padding(.horizontal, 12).padding(.vertical, 8)
-            // 【修改】背景自适应：secondarySystemGroupedBackground (深色下是深灰，浅色下是白)
             .background(Color(UIColor.secondarySystemGroupedBackground)).cornerRadius(12)
             .shadow(color: .black.opacity(0.05), radius: 2)
             
@@ -141,7 +145,6 @@ struct GameView: View {
                         }
                     }
                     .frame(width: 44, height: 44)
-                    // 【修改】背景自适应
                     .background(Color(UIColor.secondarySystemGroupedBackground)).clipShape(Circle())
                     .shadow(color: .black.opacity(0.05), radius: 2)
                 }
@@ -158,13 +161,11 @@ struct GameView: View {
             HStack(spacing: 4) {
                 Image(systemName: "clock.fill").foregroundColor(.blue)
                 Text(formatTime(game.timeElapsed))
-                    // 【修改】文字自适应
                     .foregroundColor(.primary)
                     .monospacedDigit().fontWeight(.bold)
                     .frame(minWidth: 45, alignment: .trailing)
             }
             .padding(.horizontal, 12).padding(.vertical, 8)
-            // 【修改】背景自适应
             .background(Color(UIColor.secondarySystemGroupedBackground)).cornerRadius(12)
             .shadow(color: .black.opacity(0.05), radius: 2)
         }
@@ -172,7 +173,6 @@ struct GameView: View {
     }
     
     // 【新增】：种子显示条
-    // 这是一个神秘的代码，拥有它，你就能回到过去，重新开始
     private var seedDisplayView: some View {
         Button(action: {
             UIPasteboard.general.string = String(game.currentSeed)
@@ -201,17 +201,14 @@ struct GameView: View {
     // 棋盘区域：这里埋葬了无数英雄的梦想
     private var boardView: some View {
         ZoomableScrollView {
-            // 【回归本质】：使用 VStack + HStack 渲染所有视图
-            // 移除了 .drawingGroup()，解决了黑屏背景和纹理裁剪问题
-            // 虽然是 720 个 View，但 SwiftUI 还能扛得住
             VStack(spacing: 2) {
                 ForEach(0..<game.rows, id: \.self) { row in
                     HStack(spacing: 2) {
                         ForEach(0..<game.cols, id: \.self) { col in
                             let index = row * game.cols + col
                             if index < game.grid.count {
-                                // 【修改】显式传递 isGodMode 状态给 CellView
-                                CellView(cell: game.grid[index], isGodMode: game.isGodMode)
+                                // 【修改】将当前皮肤 (game.currentTheme) 传递给格子
+                                CellView(cell: game.grid[index], isGodMode: game.isGodMode, theme: game.currentTheme)
                                     .equatable()
                                     .frame(width: baseCellSize, height: baseCellSize)
                                     // 点击：可能是惊喜，也可能是惊吓

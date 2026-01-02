@@ -15,6 +15,10 @@ class MinesweeperGame: ObservableObject {
     @Published var gameStatus: GameStatus = .playing
     @Published var showResult: Bool = false
     
+    // MARK: - 皮肤系统
+    // 既然有人想在雷区里种花，那就满足他
+    @Published var currentTheme: GameTheme = .classic
+    
     // MARK: - 致敬 Cytimax
     // 上帝模式状态：开启后拥有全知全能的视角
     @Published var isGodMode: Bool = false
@@ -56,9 +60,10 @@ class MinesweeperGame: ObservableObject {
     var cols: Int { difficulty.cols }
     var totalMines: Int { difficulty.totalMines }
     
-    // 【修改】移除了 isNoGuessingMode 参数，因为现在它是内置规则
-    init(difficulty: Difficulty = .easy, isGodMode: Bool = false, isNanagokyuuMode: Bool = false) {
+    // 【修改】初始化方法增加 theme 参数
+    init(difficulty: Difficulty = .easy, theme: GameTheme = .classic, isGodMode: Bool = false, isNanagokyuuMode: Bool = false) {
         self.difficulty = difficulty
+        self.currentTheme = theme // 继承皮肤
         self.isGodMode = isGodMode // 设置上帝模式状态
         self.isNanagokyuuMode = isNanagokyuuMode // 注入霉运
         
@@ -67,6 +72,17 @@ class MinesweeperGame: ObservableObject {
     }
     
     // MARK: - 基础生命周期
+    
+    // 切换皮肤：在 💣 和 🌼 之间反复横跳
+    func toggleTheme() {
+        if currentTheme == .classic {
+            currentTheme = .flower
+        } else {
+            currentTheme = .classic
+        }
+        // 切换皮肤给个震动反馈，让玩家知道变身了
+        HapticManager.shared.light()
+    }
     
     func changeDifficulty(_ newDifficulty: Difficulty) {
         self.difficulty = newDifficulty

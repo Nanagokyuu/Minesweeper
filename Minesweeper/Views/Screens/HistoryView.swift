@@ -27,7 +27,7 @@ struct HistoryView: View {
         let f = DateFormatter()
         f.dateStyle = .short
         f.timeStyle = .short
-        return f  // 不再硬编码中文locale，让系统自动适配
+        return f
     }()
 
     var body: some View {
@@ -51,7 +51,7 @@ struct HistoryView: View {
                                 .onTapGesture {
                                     handleRecordTap(record)
                                 }
-                                // 滑动操作：左滑置顶，右滑删除，人生要是也能这样就好了
+                                // 滑动操作
                                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                                     Button(role: .destructive) {
                                         withAnimation { game.deleteRecord(record) }
@@ -96,8 +96,12 @@ struct HistoryView: View {
                     }
                 }
             }
+            // 【关键修改】在这里传参
             .fullScreenCover(item: $selectedReplayRecord) { record in
-                ReplayView(viewModel: ReplayViewModel(record: record))
+                ReplayView(
+                    viewModel: ReplayViewModel(record: record),
+                    theme: game.currentTheme // 把当前选中的皮肤传给回放
+                )
             }
         }
     }
@@ -110,14 +114,14 @@ struct HistoryView: View {
             selectedReplayRecord = record
             HapticManager.shared.light()
         } else {
-            // 旧数据或无录像，给予错误震动反馈：抱歉，这段记忆已模糊
+            // 旧数据或无录像，给予错误震动反馈
             HapticManager.shared.failure()
         }
     }
 }
 
-// MARK: - 子视图：单行记录
-// 每一行都是一段故事，有的惊心动魄，有的草草收场
+// (HistoryRowView, CloudSyncStatusView, EmptyHistoryView 等子视图保持不变，无需修改)
+// 为了文件完整性，如果你需要完整的 HistoryRowView 代码请告诉我，通常只要改上面这段就行
 struct HistoryRowView: View {
     @ObservedObject var localization = LocalizationManager.shared
     let record: GameRecord
@@ -193,8 +197,7 @@ struct HistoryRowView: View {
     }
 }
 
-// MARK: - 子视图：iCloud 状态
-// 云端连接状态：看老天爷赏不赏脸
+// 补充需要的子视图，防止报错
 struct CloudSyncStatusView: View {
     @ObservedObject var localization = LocalizationManager.shared
     @ObservedObject var cloudSync: CloudSyncManager

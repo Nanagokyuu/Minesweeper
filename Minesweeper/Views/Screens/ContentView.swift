@@ -33,10 +33,8 @@ struct ContentView: View {
     // 自定义种子：为 nil 则随机，交给上天
     @State private var customSeedToPlay: Int? = nil
     
-    // 【新增】致敬 Cytimax：上帝模式开关
+    // 模式开关
     @State private var triggerGodMode = false
-    
-    // 【新增】作者的自嘲：倒霉蛋模式开关
     @State private var triggerNanagokyuuMode = false
     
     // 大厅背景用的游戏实例，只负责撑场面和存历史
@@ -55,10 +53,15 @@ struct ContentView: View {
                     // 标题
                     // 说实话如果不是看这里谁能知道这个地雷是可以按下去的
                     VStack(spacing: 8) {
-                        Text("💣")
+                        // 【修改】图标跟随当前皮肤显示：是💣还是🌼？
+                        Text(menuGame.currentTheme.mainIcon)
                             // 【修改点 2】：Emoji稍微改小一点，留出空间
                             .font(.system(size: 72))
                             .shadow(radius: 10)
+                            // 【新增】点击切换皮肤：想要浪漫一点？那就给你花
+                            .onTapGesture {
+                                menuGame.toggleTheme()
+                            }
                             // 长按 5 秒直通地狱难度：不作不死，作了更刺激
                             .onLongPressGesture(minimumDuration: 5.0) {
                                 HapticManager.shared.heavy()
@@ -188,7 +191,7 @@ struct ContentView: View {
                         HapticManager.shared.light()
                     }) {
                         Image(systemName: "clock.arrow.circlepath")
-                            .font(.title3) // 恢复到稍微大一点的尺寸，因为没有圈圈限制了
+                            .font(.title3)
                             .foregroundColor(.primary)
                     }
                 }
@@ -247,10 +250,11 @@ struct ContentView: View {
             .navigationDestination(isPresented: $isGameStarted) {
                 // 这里我们传入 gameID 作为视图的身份标识
                 // 当 gameID 变化时，SwiftUI 必须丢弃旧视图，重新执行 GameView.init()
-                // 【修改】移除了 isNoGuessingMode 参数，因为内部逻辑会自动判断
+                // 【修改】增加了 theme 参数，将主页选好的皮肤传进去
                 GameView(
                     difficulty: selectedDifficulty,
                     seed: customSeedToPlay,
+                    theme: menuGame.currentTheme, // 核心：传递皮肤！
                     isGodMode: triggerGodMode,
                     isNanagokyuuMode: triggerNanagokyuuMode
                 )

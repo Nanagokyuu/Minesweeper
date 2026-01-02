@@ -14,6 +14,8 @@ import SwiftUI
 struct ReplayView: View {
     @ObservedObject var localization = LocalizationManager.shared
     @StateObject var viewModel: ReplayViewModel
+    // 【新增】接收皮肤，回放也要有面子
+    let theme: GameTheme
     @Environment(\.dismiss) var dismiss
     
     // 复用 CellView 的尺寸
@@ -44,7 +46,8 @@ struct ReplayView: View {
             
             // 棋盘区域 (复用 ZoomableScrollView)
             ZStack {
-                Color(UIColor.systemGroupedBackground) // 幕布背景，低调不抢戏
+                // 【修改】背景色跟随系统
+                Color(UIColor.systemGroupedBackground)
                 
                 ZoomableScrollView {
                     VStack(spacing: 2) {
@@ -54,11 +57,14 @@ struct ReplayView: View {
                                     let index = row * viewModel.cols + col
                                     if index < viewModel.grid.count {
                                         // 【修复报错的关键点】在这里！
-                                        // 回放时我们不需要透视（或者说回放本来就是为了看清过程），
-                                        // 所以 isGodMode 传 false 即可
-                                        CellView(cell: viewModel.grid[index], isGodMode: false)
-                                            .equatable() // 别忘了这个优化
-                                            .frame(width: baseCellSize, height: baseCellSize)
+                                        // 补上了 theme 参数，让回放也支持皮肤
+                                        CellView(
+                                            cell: viewModel.grid[index],
+                                            isGodMode: false,
+                                            theme: theme // 传入皮肤
+                                        )
+                                        .equatable()
+                                        .frame(width: baseCellSize, height: baseCellSize)
                                     }
                                 }
                             }
