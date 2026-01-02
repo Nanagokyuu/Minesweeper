@@ -19,6 +19,10 @@ class MinesweeperGame: ObservableObject {
     // 上帝模式状态：开启后拥有全知全能的视角
     @Published var isGodMode: Bool = false
     
+    // MARK: - 【新增】Nanagokyuu 模式
+    // 也就是所谓的“落地成盒”模式，专门用来坑那些以为输入作者名字会有什么好果子吃的人
+    @Published var isNanagokyuuMode: Bool = false
+    
     // MARK: - 历史记录
     @Published var history: [GameRecord] = []
     
@@ -44,10 +48,11 @@ class MinesweeperGame: ObservableObject {
     var cols: Int { difficulty.cols }
     var totalMines: Int { difficulty.totalMines }
     
-    // 【修改】初始化方法增加 isGodMode 参数
-    init(difficulty: Difficulty = .easy, isGodMode: Bool = false) {
+    // 【修改】初始化方法增加 isNanagokyuuMode 参数
+    init(difficulty: Difficulty = .easy, isGodMode: Bool = false, isNanagokyuuMode: Bool = false) {
         self.difficulty = difficulty
         self.isGodMode = isGodMode // 设置上帝模式状态
+        self.isNanagokyuuMode = isNanagokyuuMode // 注入霉运
         // 初始化时随机生成一个种子并开始,命运的齿轮开始转动
         startNewGame()
     }

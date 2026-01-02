@@ -36,6 +36,9 @@ struct ContentView: View {
     // 【新增】致敬 Cytimax：上帝模式开关
     @State private var triggerGodMode = false
     
+    // 【新增】作者的自嘲：倒霉蛋模式开关
+    @State private var triggerNanagokyuuMode = false
+    
     // 大厅背景用的游戏实例，只负责撑场面和存历史
     @StateObject private var menuGame = MinesweeperGame()
     
@@ -61,6 +64,7 @@ struct ContentView: View {
                                 selectedDifficulty = .hell
                                 customSeedToPlay = nil
                                 triggerGodMode = false // 确保正常模式
+                                triggerNanagokyuuMode = false // 确保不是自杀模式
                                 // 即使是长按触发，也要刷新 ID
                                 gameID = UUID()
                                 isGameStarted = true
@@ -131,6 +135,7 @@ struct ContentView: View {
                         Button(action: {
                             customSeedToPlay = nil
                             triggerGodMode = false // 正常开始
+                            triggerNanagokyuuMode = false // 正常开始
                             gameID = UUID()
                             isGameStarted = true
                             HapticManager.shared.light()
@@ -200,15 +205,29 @@ struct ContentView: View {
                     // 【修改点】致敬 Cytimax 的彩蛋逻辑
                     if lowerText == "cytimax" {
                         triggerGodMode = true
+                        triggerNanagokyuuMode = false
                         // 【核心修改】这里改成 nil，让游戏引擎去生成随机种子
                         // 这样每次输入 Cytimax，都会是一局全新的、但是透视的排雷局
                         customSeedToPlay = nil
                         gameID = UUID()
                         isGameStarted = true
                         HapticManager.shared.success()
+                        
+                    } else if lowerText == "nanagokyuu" {
+                        // 【新增】作者模式逻辑
+                        // 既然你输入了这个名字，那就要做好心理准备
+                        triggerNanagokyuuMode = true
+                        triggerGodMode = false
+                        customSeedToPlay = nil // 这里的随机种子已经没有意义了，因为结局已注定
+                        gameID = UUID()
+                        isGameStarted = true
+                        // 给个震动，让玩家以为触发了什么隐藏福利，其实是隐藏陷阱
+                        HapticManager.shared.success()
+                        
                     } else if let seed = Int(seedInputText) {
                         // 正常的数字种子逻辑
                         triggerGodMode = false
+                        triggerNanagokyuuMode = false
                         customSeedToPlay = seed
                         gameID = UUID()
                         isGameStarted = true
@@ -221,9 +240,14 @@ struct ContentView: View {
             .navigationDestination(isPresented: $isGameStarted) {
                 // 这里我们传入 gameID 作为视图的身份标识
                 // 当 gameID 变化时，SwiftUI 必须丢弃旧视图，重新执行 GameView.init()
-                // 【修改】传入 isGodMode 参数
-                GameView(difficulty: selectedDifficulty, seed: customSeedToPlay, isGodMode: triggerGodMode)
-                    .id(gameID)
+                // 【修改】传入 isGodMode 和 isNanagokyuuMode 参数
+                GameView(
+                    difficulty: selectedDifficulty,
+                    seed: customSeedToPlay,
+                    isGodMode: triggerGodMode,
+                    isNanagokyuuMode: triggerNanagokyuuMode
+                )
+                .id(gameID)
             }
         }
     }

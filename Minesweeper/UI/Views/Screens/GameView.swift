@@ -25,10 +25,14 @@ struct GameView: View {
     
     // 【关键】：初始化逻辑
     // 上帝掷骰子的地方，或者你指定上帝掷出几点（如果有 seed）
-    // 【修改】增加 isGodMode 参数
-    init(difficulty: Difficulty, seed: Int? = nil, isGodMode: Bool = false) {
-        // 将上帝模式状态传递给 ViewModel
-        let newGame = MinesweeperGame(difficulty: difficulty, isGodMode: isGodMode)
+    // 【修改】增加 isGodMode 和 isNanagokyuuMode 参数
+    init(difficulty: Difficulty, seed: Int? = nil, isGodMode: Bool = false, isNanagokyuuMode: Bool = false) {
+        // 将上帝模式和作者模式状态传递给 ViewModel
+        let newGame = MinesweeperGame(
+            difficulty: difficulty,
+            isGodMode: isGodMode,
+            isNanagokyuuMode: isNanagokyuuMode
+        )
         // 如果有种子，就用种子重新开局，复刻那场经典的战役
         if let customSeed = seed {
             newGame.startNewGame(with: customSeed)
@@ -122,7 +126,14 @@ struct GameView: View {
             }) {
                 VStack(spacing: 0) {
                     // 如果是上帝模式，显示一个特殊的图标
-                    Text(game.isGodMode ? "👁️" : game.difficulty.icon).font(.headline)
+                    // 如果是倒霉蛋模式，显示一个哭脸
+                    if game.isNanagokyuuMode {
+                        Text("🤡").font(.headline)
+                    } else if game.isGodMode {
+                        Text("👁️").font(.headline)
+                    } else {
+                        Text(game.difficulty.icon).font(.headline)
+                    }
                 }
                 .frame(width: 44, height: 44)
                 .background(Color.white).clipShape(Circle())
