@@ -66,7 +66,6 @@ class LocalizationManager: ObservableObject {
             self.currentLanguage = language
         } else {
             // 2. 如果没选过，就偷看一眼系统的首选语言列表
-            // Locale.preferredLanguages通常比Locale.current更诚实，它返回的是类似 ["zh-Hans-CN", "en-US"] 这样的数组
             let preferredLanguages = Locale.preferredLanguages
             let firstLang = preferredLanguages.first ?? "en"
             
@@ -128,14 +127,14 @@ enum LocalizedKey {
     case difficultyHard
     case difficultyHell
     
-    // 【新增】地雷数量后缀
+    // 地雷数量后缀
     case minesSuffix
     
     // 模式
     case modeDigging
     case modeFlagging
     
-    // 【新增】无猜模式相关
+    // 无猜模式相关
     case modeNoGuessing
     case solverFailed
     
@@ -175,28 +174,41 @@ enum LocalizedKey {
     case stepCount
     case playbackSpeed
     
+    // 设置界面 (新增)
+    case settings
+    case general
+    case language
+    case appearance
+    case appearanceSystem
+    case appearanceLight
+    case appearanceDark
+    case gameplay
+    case theme
+    case themeClassic
+    case themeFlower
+    case haptics
+    case hapticsDesc
+    case noGuessingOption
+    case noGuessingDesc
+    case dataManagement
+    case clearHistoryConfirm
+    case about
+    case version
+    
     // 其他
     case goodLuck
     case betterLuckNextTime
     
     func localized(for language: AppLanguage) -> String {
         switch language {
-        case .simplifiedChinese:
-            return localizedSimplifiedChinese
-        case .traditionalChinese:
-            return localizedTraditionalChinese
-        case .english:
-            return localizedEnglish
-        case .japanese:
-            return localizedJapanese
-        case .korean:
-            return localizedKorean
-        case .russian:
-            return localizedRussian
-        case .french:
-            return localizedFrench
-        case .arabic:
-            return localizedArabic
+        case .simplifiedChinese: return localizedSimplifiedChinese
+        case .traditionalChinese: return localizedTraditionalChinese
+        case .english: return localizedEnglish
+        case .japanese: return localizedJapanese
+        case .korean: return localizedKorean
+        case .russian: return localizedRussian
+        case .french: return localizedFrench
+        case .arabic: return localizedArabic
         }
     }
     
@@ -267,8 +279,120 @@ enum LocalizedKey {
         case .stepCount: return "步数"
         case .playbackSpeed: return "倍速"
             
+        case .settings: return "设置"
+        case .general: return "通用"
+        case .language: return "多语言 (Language)"
+        case .appearance: return "外观模式"
+        case .appearanceSystem: return "跟随系统"
+        case .appearanceLight: return "浅色模式"
+        case .appearanceDark: return "深色模式"
+        case .gameplay: return "游戏体验"
+        case .theme: return "游戏皮肤"
+        case .themeClassic: return "经典 (💣)"
+        case .themeFlower: return "花圃 (🌼)"
+        case .haptics: return "震动反馈"
+        case .hapticsDesc: return "开启后，挖雷和爆炸时会有触感反馈"
+        case .noGuessingOption: return "无猜模式"
+        case .noGuessingDesc: return "保证所有局面都可逻辑推导，无需瞎猜 (地狱难度除外)"
+        case .dataManagement: return "数据管理"
+        case .clearHistoryConfirm: return "确定要删除所有历史记录吗？此操作不可撤销。"
+        case .about: return "关于"
+        case .version: return "版本"
+            
         case .goodLuck: return "祝你好运"
         case .betterLuckNextTime: return "下次好运."
+        }
+    }
+    
+    // MARK: - English
+    private var localizedEnglish: String {
+        switch self {
+        case .close: return "Close"
+        case .cancel: return "Cancel"
+        case .confirm: return "Confirm"
+        case .delete: return "Delete"
+        case .clearAll: return "Clear All"
+        case .retry: return "Retry"
+        case .exit: return "Exit"
+        case .start: return "Start"
+        case .ok: return "OK"
+            
+        case .gameTitle: return "Minesweeper"
+        case .selectDifficulty: return "Select Difficulty"
+        case .startGame: return "Start Game"
+        case .exitGame: return "Exit Game"
+        case .gameOver: return "Game Over"
+        case .congratulations: return "Congratulations!"
+        case .playAgain: return "Play Again"
+        case .reviewBoard: return "👀 Review Board"
+        case .timeElapsed: return "Time"
+        case .remainingMines: return "Mines Left"
+            
+        case .difficultyEasy: return "Easy"
+        case .difficultyMedium: return "Medium"
+        case .difficultyHard: return "Hard"
+        case .difficultyHell: return "Hell"
+        case .minesSuffix: return " Mines"
+            
+        case .modeDigging: return "Dig"
+        case .modeFlagging: return "Flag"
+            
+        case .modeNoGuessing: return "No Guessing"
+        case .solverFailed: return "Luck is not on your side... Good luck."
+            
+        case .ruleDig: return "Switch to [Dig] mode to reveal cells"
+        case .ruleFlag: return "Switch to [Flag] mode to mark mines"
+        case .ruleSeed: return "Use the same seed for fair competition"
+            
+        case .history: return "History"
+        case .historyTitle: return "Game History"
+        case .noHistory: return "No Game Records"
+        case .noHistoryDesc: return "Complete a game to view replays here"
+        case .replay: return "Replay"
+        case .pin: return "Pin"
+        case .unpin: return "Unpin"
+        case .pinned: return "Pinned"
+            
+        case .seed: return "Seed"
+        case .seedCopied: return "Seed Copied"
+        case .inputSeed: return "Start"
+        case .inputSeedTitle: return "Enter Game Seed"
+        case .inputSeedMessage: return "Entering the same number will generate an identical minefield layout."
+        case .inputSeedPlaceholder: return "e.g., 123456"
+        case .customSeedChallenge: return "Custom Seed Challenge"
+            
+        case .iCloudReady: return "iCloud Ready"
+        case .iCloudUnavailable: return "iCloud Unavailable"
+        case .lastSync: return "Last Sync"
+        case .waitingSync: return "Waiting to sync..."
+        case .syncNow: return "Sync Now"
+            
+        case .replayTitle: return "Game Replay"
+        case .stepCount: return "Steps"
+        case .playbackSpeed: return "Speed"
+        
+        case .settings: return "Settings"
+        case .general: return "General"
+        case .language: return "Language"
+        case .appearance: return "Appearance"
+        case .appearanceSystem: return "System"
+        case .appearanceLight: return "Light"
+        case .appearanceDark: return "Dark"
+        case .gameplay: return "Gameplay"
+        case .theme: return "Theme"
+        case .themeClassic: return "Classic (💣)"
+        case .themeFlower: return "Flower (🌼)"
+        case .haptics: return "Haptics"
+        case .hapticsDesc: return "Vibration feedback on dig and explode"
+        case .noGuessingOption: return "No Guessing Mode"
+        case .noGuessingDesc: return "Ensures solvable boards without luck (Except Hell)"
+        case .dataManagement: return "Data"
+        case .clearHistoryConfirm: return "Delete all history? This cannot be undone."
+        case .about: return "About"
+        case .version: return "Version"
+            
+        case .goodLuck: return "Good luck"
+        case .betterLuckNextTime: return "Better luck next time."
         }
     }
     
@@ -339,80 +463,28 @@ enum LocalizedKey {
         case .stepCount: return "步數"
         case .playbackSpeed: return "倍速"
             
+        case .settings: return "設定"
+        case .general: return "一般"
+        case .language: return "多語言 (Language)"
+        case .appearance: return "外觀模式"
+        case .appearanceSystem: return "跟隨系統"
+        case .appearanceLight: return "淺色模式"
+        case .appearanceDark: return "深色模式"
+        case .gameplay: return "遊戲體驗"
+        case .theme: return "遊戲皮膚"
+        case .themeClassic: return "經典 (💣)"
+        case .themeFlower: return "花圃 (🌼)"
+        case .haptics: return "震動回饋"
+        case .hapticsDesc: return "開啟後，挖雷和爆炸時會有觸感回饋"
+        case .noGuessingOption: return "無猜模式"
+        case .noGuessingDesc: return "保證所有局面都可邏輯推導，無需瞎猜 (地獄難度除外)"
+        case .dataManagement: return "數據管理"
+        case .clearHistoryConfirm: return "確定要刪除所有歷史記錄嗎？此操作不可撤銷。"
+        case .about: return "關於"
+        case .version: return "版本"
+            
         case .goodLuck: return "祝你好運"
         case .betterLuckNextTime: return "下次好運."
-        }
-    }
-    
-    // MARK: - English
-    private var localizedEnglish: String {
-        switch self {
-        case .close: return "Close"
-        case .cancel: return "Cancel"
-        case .confirm: return "Confirm"
-        case .delete: return "Delete"
-        case .clearAll: return "Clear All"
-        case .retry: return "Retry"
-        case .exit: return "Exit"
-        case .start: return "Start"
-        case .ok: return "OK"
-            
-        case .gameTitle: return "Minesweeper"
-        case .selectDifficulty: return "Select Difficulty"
-        case .startGame: return "Start Game"
-        case .exitGame: return "Exit Game"
-        case .gameOver: return "Game Over"
-        case .congratulations: return "Congratulations!"
-        case .playAgain: return "Play Again"
-        case .reviewBoard: return "👀 Review Board"
-        case .timeElapsed: return "Time"
-        case .remainingMines: return "Mines Left"
-            
-        case .difficultyEasy: return "Easy"
-        case .difficultyMedium: return "Medium"
-        case .difficultyHard: return "Hard"
-        case .difficultyHell: return "Hell"
-        case .minesSuffix: return " Mines"
-            
-        case .modeDigging: return "Dig"
-        case .modeFlagging: return "Flag"
-            
-        case .modeNoGuessing: return "No Guessing"
-        case .solverFailed: return "Luck is not on your side... Good luck."
-            
-        case .ruleDig: return "Switch to [Dig] mode to reveal cells"
-        case .ruleFlag: return "Switch to [Flag] mode to mark mines"
-        case .ruleSeed: return "Use the same seed for fair competition"
-            
-        case .history: return "History"
-        case .historyTitle: return "Game History"
-        case .noHistory: return "No Game Records"
-        case .noHistoryDesc: return "Complete a game to view replays here"
-        case .replay: return "Replay"
-        case .pin: return "Pin"
-        case .unpin: return "Unpin"
-        case .pinned: return "Pinned"
-            
-        case .seed: return "Seed"
-        case .seedCopied: return "Seed Copied"
-        case .inputSeed: return "Start"
-        case .inputSeedTitle: return "Enter Game Seed"
-        case .inputSeedMessage: return "Entering the same number will generate an identical minefield layout."
-        case .inputSeedPlaceholder: return "e.g., 123456"
-        case .customSeedChallenge: return "Custom Seed Challenge"
-            
-        case .iCloudReady: return "iCloud Ready"
-        case .iCloudUnavailable: return "iCloud Unavailable"
-        case .lastSync: return "Last Sync"
-        case .waitingSync: return "Waiting to sync..."
-        case .syncNow: return "Sync Now"
-            
-        case .replayTitle: return "Game Replay"
-        case .stepCount: return "Steps"
-        case .playbackSpeed: return "Speed"
-            
-        case .goodLuck: return "Good luck"
-        case .betterLuckNextTime: return "Better luck next time."
         }
     }
     
@@ -482,6 +554,26 @@ enum LocalizedKey {
         case .replayTitle: return "ゲームリプレイ"
         case .stepCount: return "手数"
         case .playbackSpeed: return "速度"
+            
+        case .settings: return "設定"
+        case .general: return "一般"
+        case .language: return "言語 (Language)"
+        case .appearance: return "外観モード"
+        case .appearanceSystem: return "システム設定"
+        case .appearanceLight: return "ライトモード"
+        case .appearanceDark: return "ダークモード"
+        case .gameplay: return "ゲームプレイ"
+        case .theme: return "テーマ"
+        case .themeClassic: return "クラシック (💣)"
+        case .themeFlower: return "花畑 (🌼)"
+        case .haptics: return "振動フィードバック"
+        case .hapticsDesc: return "掘る時と爆発時に振動します"
+        case .noGuessingOption: return "運任せなし"
+        case .noGuessingDesc: return "論理的に解決可能な盤面を保証します (地獄を除く)"
+        case .dataManagement: return "データ管理"
+        case .clearHistoryConfirm: return "すべての履歴を削除しますか？この操作は取り消せません。"
+        case .about: return "について"
+        case .version: return "バージョン"
             
         case .goodLuck: return "がんばって"
         case .betterLuckNextTime: return "次回がんばって."
@@ -555,12 +647,32 @@ enum LocalizedKey {
         case .stepCount: return "단계"
         case .playbackSpeed: return "속도"
             
+        case .settings: return "설정"
+        case .general: return "일반"
+        case .language: return "언어 (Language)"
+        case .appearance: return "화면 모드"
+        case .appearanceSystem: return "시스템 설정"
+        case .appearanceLight: return "라이트 모드"
+        case .appearanceDark: return "다크 모드"
+        case .gameplay: return "게임 플레이"
+        case .theme: return "테마"
+        case .themeClassic: return "클래식 (💣)"
+        case .themeFlower: return "꽃밭 (🌼)"
+        case .haptics: return "진동 피드백"
+        case .hapticsDesc: return "활성화 시 지뢰를 팔 때 진동이 울립니다"
+        case .noGuessingOption: return "운빨 금지 모드"
+        case .noGuessingDesc: return "모든 판을 논리적으로 풀 수 있게 보장합니다 (지옥 제외)"
+        case .dataManagement: return "데이터 관리"
+        case .clearHistoryConfirm: return "모든 기록을 삭제하시겠습니까? 되돌릴 수 없습니다."
+        case .about: return "정보"
+        case .version: return "버전"
+            
         case .goodLuck: return "행운을 빕니다"
         case .betterLuckNextTime: return "다음엔 잘하세요."
         }
     }
     
-    // MARK: - Русский (俄语)
+    // MARK: - Русский
     private var localizedRussian: String {
         switch self {
         case .close: return "Закрыть"
@@ -627,12 +739,32 @@ enum LocalizedKey {
         case .stepCount: return "Ходы"
         case .playbackSpeed: return "Скор."
             
+        case .settings: return "Настройки"
+        case .general: return "Общие"
+        case .language: return "Язык (Language)"
+        case .appearance: return "Тема оформления"
+        case .appearanceSystem: return "Системная"
+        case .appearanceLight: return "Светлая"
+        case .appearanceDark: return "Темная"
+        case .gameplay: return "Геймплей"
+        case .theme: return "Скин"
+        case .themeClassic: return "Классика (💣)"
+        case .themeFlower: return "Цветы (🌼)"
+        case .haptics: return "Вибрация"
+        case .hapticsDesc: return "Вибрация при копании и взрывах"
+        case .noGuessingOption: return "Без догадок"
+        case .noGuessingDesc: return "Гарантирует логическое решение (кроме Ада)"
+        case .dataManagement: return "Данные"
+        case .clearHistoryConfirm: return "Удалить всю историю? Это нельзя отменить."
+        case .about: return "О приложении"
+        case .version: return "Версия"
+            
         case .goodLuck: return "Удачи"
         case .betterLuckNextTime: return "Повезет в другой раз."
         }
     }
     
-    // MARK: - Français (法语)
+    // MARK: - Français
     private var localizedFrench: String {
         switch self {
         case .close: return "Fermer"
@@ -699,12 +831,32 @@ enum LocalizedKey {
         case .stepCount: return "Coups"
         case .playbackSpeed: return "Vitesse"
             
+        case .settings: return "Paramètres"
+        case .general: return "Général"
+        case .language: return "Langue"
+        case .appearance: return "Apparence"
+        case .appearanceSystem: return "Système"
+        case .appearanceLight: return "Clair"
+        case .appearanceDark: return "Sombre"
+        case .gameplay: return "Jeu"
+        case .theme: return "Thème"
+        case .themeClassic: return "Classique (💣)"
+        case .themeFlower: return "Fleurs (🌼)"
+        case .haptics: return "Vibrations"
+        case .hapticsDesc: return "Retour haptique lors du creusage"
+        case .noGuessingOption: return "Sans deviner"
+        case .noGuessingDesc: return "Garantit des plateaux résolubles logiquement"
+        case .dataManagement: return "Données"
+        case .clearHistoryConfirm: return "Tout supprimer ? Impossible d'annuler."
+        case .about: return "À propos"
+        case .version: return "Version"
+            
         case .goodLuck: return "Bonne chance"
         case .betterLuckNextTime: return "La prochaine fois sera la bonne."
         }
     }
     
-    // MARK: - العربية (阿拉伯语)
+    // MARK: - العربية
     private var localizedArabic: String {
         switch self {
         case .close: return "إغلاق"
@@ -770,6 +922,26 @@ enum LocalizedKey {
         case .replayTitle: return "إعادة اللعبة"
         case .stepCount: return "خطوات"
         case .playbackSpeed: return "سرعة"
+            
+        case .settings: return "الإعدادات"
+        case .general: return "عام"
+        case .language: return "اللغة"
+        case .appearance: return "المظهر"
+        case .appearanceSystem: return "النظام"
+        case .appearanceLight: return "فاتح"
+        case .appearanceDark: return "داكن"
+        case .gameplay: return "اللعب"
+        case .theme: return "السِمة"
+        case .themeClassic: return "كلاسيكي (💣)"
+        case .themeFlower: return "زهور (🌼)"
+        case .haptics: return "الاهتزاز"
+        case .hapticsDesc: return "تفعيل الاهتزاز عند الحفر والانفجار"
+        case .noGuessingOption: return "بدون تخمين"
+        case .noGuessingDesc: return "يضمن حلولاً منطقية (باستثناء الجحيم)"
+        case .dataManagement: return "البيانات"
+        case .clearHistoryConfirm: return "حذف كل السجل؟ لا يمكن التراجع."
+        case .about: return "حول"
+        case .version: return "إصدار"
             
         case .goodLuck: return "حظاً موفقاً"
         case .betterLuckNextTime: return "حظاً أوفر في المرة القادمة."

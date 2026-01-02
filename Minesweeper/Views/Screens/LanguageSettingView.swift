@@ -9,8 +9,8 @@
 
 import SwiftUI
 
-// 语言选择面板：五大语言，总有一款适合你
-// 从🇨🇳到🇺🇸，从🇯🇵到🇰🇷，语言不同，但被炸的心情是相通的
+// 语言选择面板：八大语言，总有一款适合你
+// 从🇨🇳到🇺🇸，从🇯🇵到🇰🇷，从🇷🇺到🇸🇦，语言不同，但被炸的心情是相通的
 struct LanguageSettingsView: View {
     @ObservedObject var localization = LocalizationManager.shared
     @Environment(\.dismiss) var dismiss

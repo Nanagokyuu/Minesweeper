@@ -10,7 +10,9 @@ import SwiftUI
 @main
 struct MinesweeperApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    
+    // 监听全局设置，这样才能实时响应深色模式的切换
+    @ObservedObject var settings = AppSettings.shared
+   
     var body: some Scene {
         WindowGroup {
             ContentView()

@@ -17,6 +17,7 @@ class MinesweeperGame: ObservableObject {
     
     // MARK: - 皮肤系统
     // 既然有人想在雷区里种花，那就满足他
+    // Update: 现在这个属性主要用于游戏内部显示，真正的开关在 AppSettings
     @Published var currentTheme: GameTheme = .classic
     
     // MARK: - 致敬 Cytimax
@@ -28,11 +29,13 @@ class MinesweeperGame: ObservableObject {
     @Published var isNanagokyuuMode: Bool = false
     
     // MARK: - 无猜模式逻辑 (No Guessing Mode)
-    // 【修改】不再作为可选项，而是默认机制
-    // 只要不是地狱模式，默认开启无猜保护，拒绝二选一
-    // 地狱模式？那是给受虐狂准备的，不需要公平，只需要绝望
+    // 【修改】逻辑升级：
+    // 1. 如果是地狱模式，强制关闭无猜（地狱就是用来受苦的，不需要公平）
+    // 2. 如果不是地狱模式，则检查 AppSettings 里的总开关
+    // 这样就把选择权交给了 SettingsView 里的开关
     var isNoGuessingMode: Bool {
-        return difficulty != .hell
+        if difficulty == .hell { return false }
+        return AppSettings.shared.isNoGuessingEnabled
     }
     
     // MARK: - 历史记录
@@ -61,6 +64,7 @@ class MinesweeperGame: ObservableObject {
     var totalMines: Int { difficulty.totalMines }
     
     // 【修改】初始化方法增加 theme 参数
+    // 这样从 SettingsView 修改完回来，新开的游戏就能拿到新皮肤
     init(difficulty: Difficulty = .easy, theme: GameTheme = .classic, isGodMode: Bool = false, isNanagokyuuMode: Bool = false) {
         self.difficulty = difficulty
         self.currentTheme = theme // 继承皮肤
@@ -74,6 +78,7 @@ class MinesweeperGame: ObservableObject {
     // MARK: - 基础生命周期
     
     // 切换皮肤：在 💣 和 🌼 之间反复横跳
+    // 兼容旧代码的方法，现在实际由SettingsView控制
     func toggleTheme() {
         if currentTheme == .classic {
             currentTheme = .flower
