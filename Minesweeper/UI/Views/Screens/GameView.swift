@@ -1,5 +1,5 @@
 //
-//  GameViews.swift
+//  GameViews.swift (多语言版本)
 //  Minesweeper
 //
 //  Created by Nanagokyuu on 2025/12/22.
@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct GameView: View {
+    @ObservedObject var localization = LocalizationManager.shared
     // 游戏的大脑，掌控着雷区的生杀大权
     @StateObject var game: MinesweeperGame
     // 用于逃离战场的紧急出口
@@ -15,7 +16,7 @@ struct GameView: View {
     // 当前手中的工具：是铲子(dig)还是旗帜(flag)？
     @State private var inputMode: InputMode = .dig
     
-    // 提示文本状态：告诉用户“种子已复制”，虽然他们可能只是手滑
+    // 提示文本状态：告诉用户"种子已复制"，虽然他们可能只是手滑
     @State private var showCopyToast = false
     
     // MARK: - 缩放相关状态
@@ -24,8 +25,10 @@ struct GameView: View {
     
     // 【关键】：初始化逻辑
     // 上帝掷骰子的地方，或者你指定上帝掷出几点（如果有 seed）
-    init(difficulty: Difficulty, seed: Int? = nil) {
-        let newGame = MinesweeperGame(difficulty: difficulty)
+    // 【修改】增加 isGodMode 参数
+    init(difficulty: Difficulty, seed: Int? = nil, isGodMode: Bool = false) {
+        // 将上帝模式状态传递给 ViewModel
+        let newGame = MinesweeperGame(difficulty: difficulty, isGodMode: isGodMode)
         // 如果有种子，就用种子重新开局，复刻那场经典的战役
         if let customSeed = seed {
             newGame.startNewGame(with: customSeed)
@@ -64,7 +67,7 @@ struct GameView: View {
             if showCopyToast {
                 VStack {
                     Spacer()
-                    Text("种子已复制")
+                    Text(localization.text(.seedCopied))
                         .font(.caption)
                         .foregroundColor(.white)
                         .padding(.horizontal, 16)
@@ -91,7 +94,7 @@ struct GameView: View {
         .navigationBarHidden(true)
     }
     
-    // MARK: - 子视图拆分
+    // MARK: - 子视图
     
     private var headerView: some View {
         HStack {
@@ -118,7 +121,8 @@ struct GameView: View {
                 HapticManager.shared.light()
             }) {
                 VStack(spacing: 0) {
-                    Text(game.difficulty.icon).font(.headline)
+                    // 如果是上帝模式，显示一个特殊的图标
+                    Text(game.isGodMode ? "👁️" : game.difficulty.icon).font(.headline)
                 }
                 .frame(width: 44, height: 44)
                 .background(Color.white).clipShape(Circle())
@@ -160,7 +164,7 @@ struct GameView: View {
             HStack(spacing: 4) {
                 Image(systemName: "number.square")
                     .font(.caption)
-                Text("Seed: \(game.currentSeed)")
+                Text("\(localization.text(.seed)): \(game.currentSeed)")
                     .font(.caption).monospacedDigit()
                 Image(systemName: "doc.on.doc")
                     .font(.caption2)
@@ -185,7 +189,8 @@ struct GameView: View {
                         ForEach(0..<game.cols, id: \.self) { col in
                             let index = row * game.cols + col
                             if index < game.grid.count {
-                                CellView(cell: game.grid[index])
+                                // 【修改】显式传递 isGodMode 状态给 CellView
+                                CellView(cell: game.grid[index], isGodMode: game.isGodMode)
                                     .equatable()
                                     .frame(width: baseCellSize, height: baseCellSize)
                                     // 点击：可能是惊喜，也可能是惊吓
@@ -211,8 +216,10 @@ struct GameView: View {
             HStack(spacing: 20) {
                 // 挖雷模式：莽夫的选择
                 ModeButton(
-                    title: "挖雷", icon: "hammer.fill",
-                    isSelected: inputMode == .dig, color: .blue
+                    title: localization.text(.modeDigging),
+                    icon: "hammer.fill",
+                    isSelected: inputMode == .dig,
+                    color: .blue
                 ) {
                     inputMode = .dig
                     HapticManager.shared.light()
@@ -220,8 +227,10 @@ struct GameView: View {
                 
                 // 插旗模式：智者的选择
                 ModeButton(
-                    title: "插旗", icon: "flag.fill",
-                    isSelected: inputMode == .flag, color: .orange
+                    title: localization.text(.modeFlagging),
+                    icon: "flag.fill",
+                    isSelected: inputMode == .flag,
+                    color: .orange
                 ) {
                     inputMode = .flag
                     HapticManager.shared.light()
@@ -233,13 +242,16 @@ struct GameView: View {
             .opacity(game.gameStatus == .playing ? 1 : 0.6)
             
             // 退出按钮：留得青山在，不怕没柴烧
-            Button("退出游戏") { presentationMode.wrappedValue.dismiss() }
-                .foregroundColor(.gray).font(.caption).padding(.bottom, 5)
-                .disabled(game.gameStatus == .exploding)
+            Button(localization.text(.exitGame)) {
+                presentationMode.wrappedValue.dismiss()
+            }
+            .foregroundColor(.gray).font(.caption).padding(.bottom, 5)
+            .disabled(game.gameStatus == .exploding)
         }
     }
     
     // MARK: - 交互逻辑 (保持不变)
+    
     private func handleSmartTap(at index: Int) {
         let cell = game.grid[index]
         if cell.isRevealed {

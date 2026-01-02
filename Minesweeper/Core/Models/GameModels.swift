@@ -1,5 +1,5 @@
 //
-//  Models.swift
+//  GameModels.swift
 //  Minesweeper
 //
 //  Created by Nanagokyuu on 2025/12/22.
@@ -115,4 +115,23 @@ struct GameRecord: Identifiable, Codable {
     var cols: Int?
     var mineIndices: [Int]?
     var moves: [GameMove]?
+}
+
+// MARK: - Difficulty 扩展 (多语言支持)
+// 把这段加在文件最后面，专门负责翻译
+extension Difficulty {
+    func localizedName(localization: LocalizationManager) -> String {
+        switch self {
+        case .easy: return localization.text(.difficultyEasy)
+        case .medium: return localization.text(.difficultyMedium)
+        case .hard: return localization.text(.difficultyHard)
+        case .hell: return localization.text(.difficultyHell)
+        }
+    }
+    
+    // 动态生成的难度描述
+    // 比如：9x9 · 10个雷
+    func localizedDescription(localization: LocalizationManager) -> String {
+        return "\(rows)×\(cols) · \(totalMines)\(localization.text(.minesSuffix))"
+    }
 }

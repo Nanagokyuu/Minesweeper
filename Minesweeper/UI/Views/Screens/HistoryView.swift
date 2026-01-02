@@ -1,15 +1,20 @@
 //
-//  HistoryView.swift
+//  HistoryView.swift (多语言版本)
 //  Minesweeper
 //
 //  Created by Nanagokyuu on 2025/12/28.
 //
+//  历史记录说真的不见得多实用，我只是想顺手做一个
+//  不是我怎么越做越上头了，还加了回放功能
+//  现在还支持多语言了，真是停不下来
 
 import SwiftUI
 
 // MARK: - 历史记录视图
 // 这里存放着你的血泪史，每一条记录都是一次心跳加速的旅程
+// 现在还能用五种语言回顾你的黑历史
 struct HistoryView: View {
+    @ObservedObject var localization = LocalizationManager.shared
     @ObservedObject var game: MinesweeperGame
     @StateObject private var cloudSync = CloudSyncManager.shared
     @Environment(\.dismiss) var dismiss
@@ -22,8 +27,7 @@ struct HistoryView: View {
         let f = DateFormatter()
         f.dateStyle = .short
         f.timeStyle = .short
-        f.locale = Locale(identifier: "zh_CN")
-        return f
+        return f  // 不再硬编码中文locale，让系统自动适配
     }()
 
     var body: some View {
@@ -39,7 +43,7 @@ struct HistoryView: View {
                 if game.history.isEmpty {
                     EmptyHistoryView()
                 } else {
-                    Section(header: Text("游戏记录").font(.caption)) {
+                    Section(header: Text(localization.text(.history)).font(.caption)) {
                         ForEach(game.history) { record in
                             // 记录行视图
                             HistoryRowView(record: record, formatter: dateFormatter)
@@ -52,14 +56,14 @@ struct HistoryView: View {
                                     Button(role: .destructive) {
                                         withAnimation { game.deleteRecord(record) }
                                     } label: {
-                                        Label("删除", systemImage: "trash")
+                                        Label(localization.text(.delete), systemImage: "trash")
                                     }
                                 }
                                 .swipeActions(edge: .leading, allowsFullSwipe: true) {
                                     Button {
                                         withAnimation { game.togglePin(record) }
                                     } label: {
-                                        Label(record.isPinned ? "取消置顶" : "置顶",
+                                        Label(record.isPinned ? localization.text(.unpin) : localization.text(.pin),
                                               systemImage: record.isPinned ? "pin.slash" : "pin")
                                     }
                                     .tint(.orange)
@@ -68,14 +72,14 @@ struct HistoryView: View {
                     }
                 }
             }
-            .navigationTitle("历史记录")
+            .navigationTitle(localization.text(.historyTitle))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("关闭") { dismiss() }
+                    Button(localization.text(.close)) { dismiss() }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("清除全部") {
+                    Button(localization.text(.clearAll)) {
                         game.clearHistory()
                         HapticManager.shared.light()
                     }
@@ -85,7 +89,6 @@ struct HistoryView: View {
             }
             .onAppear {
                 game.loadHistory()
-                // 启动时尝试同步一次
                 if cloudSync.isCloudAvailable {
                     cloudSync.downloadFromCloud()
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
@@ -93,9 +96,7 @@ struct HistoryView: View {
                     }
                 }
             }
-            // 全屏显示回放界面
             .fullScreenCover(item: $selectedReplayRecord) { record in
-                // 确保你已经添加了 ReplayView 和 ReplayViewModel
                 ReplayView(viewModel: ReplayViewModel(record: record))
             }
         }
@@ -118,6 +119,7 @@ struct HistoryView: View {
 // MARK: - 子视图：单行记录
 // 每一行都是一段故事，有的惊心动魄，有的草草收场
 struct HistoryRowView: View {
+    @ObservedObject var localization = LocalizationManager.shared
     let record: GameRecord
     let formatter: DateFormatter
     
@@ -130,7 +132,7 @@ struct HistoryRowView: View {
             
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
-                    Text(record.difficultyName)
+                    Text(record.localizedDifficultyName(localization: localization))
                         .font(.headline)
                     if record.isPinned {
                         // 置顶：永远铭记
@@ -172,7 +174,7 @@ struct HistoryRowView: View {
                 if record.moves != nil {
                     HStack(spacing: 2) {
                         Image(systemName: "play.tv.fill")
-                        Text("回放")
+                        Text(localization.text(.replay))
                     }
                     .font(.caption2)
                     .foregroundColor(.blue.opacity(0.8))
@@ -194,6 +196,7 @@ struct HistoryRowView: View {
 // MARK: - 子视图：iCloud 状态
 // 云端连接状态：看老天爷赏不赏脸
 struct CloudSyncStatusView: View {
+    @ObservedObject var localization = LocalizationManager.shared
     @ObservedObject var cloudSync: CloudSyncManager
     let onReload: () -> Void
     
@@ -206,15 +209,15 @@ struct CloudSyncStatusView: View {
                         .font(.title2)
                     
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("iCloud 已就绪")
+                        Text(localization.text(.iCloudReady))
                             .font(.headline)
                         
                         if let lastSync = cloudSync.lastSyncDate {
-                            Text("上次同步: \(lastSync, style: .relative)前")
+                            Text("\(localization.text(.lastSync)): \(lastSync, style: .relative)")
                                 .font(.caption2)
                                 .foregroundColor(.secondary)
                         } else {
-                            Text("等待同步...")
+                            Text(localization.text(.waitingSync))
                                 .font(.caption2)
                                 .foregroundColor(.secondary)
                         }
@@ -229,7 +232,6 @@ struct CloudSyncStatusView: View {
                         Button(action: {
                             cloudSync.downloadFromCloud()
                             HapticManager.shared.light()
-                            // 延迟刷新
                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
                                 onReload()
                             }
@@ -248,7 +250,7 @@ struct CloudSyncStatusView: View {
                 HStack {
                     Image(systemName: "exclamationmark.icloud")
                         .foregroundColor(.orange)
-                    Text("iCloud 未登录或不可用")
+                    Text(localization.text(.iCloudUnavailable))
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
@@ -260,20 +262,49 @@ struct CloudSyncStatusView: View {
 // MARK: - 子视图：空状态
 // 一片空白，就像你的大脑（划掉）就像新的开始
 struct EmptyHistoryView: View {
+    @ObservedObject var localization = LocalizationManager.shared
+    
     var body: some View {
         VStack(spacing: 15) {
             Image(systemName: "doc.text.magnifyingglass")
                 .font(.system(size: 50))
                 .foregroundColor(.gray.opacity(0.5))
-            Text("暂无游戏记录")
+            Text(localization.text(.noHistory))
                 .font(.headline)
                 .foregroundColor(.gray)
-            Text("完成一局游戏后，可在此查看回放")
+            Text(localization.text(.noHistoryDesc))
                 .font(.caption)
                 .foregroundColor(.gray.opacity(0.8))
         }
         .frame(maxWidth: .infinity)
         .padding(.top, 60)
         .listRowBackground(Color.clear)
+    }
+}
+
+// MARK: - GameRecord扩展 (多语言支持)
+// 让历史记录也能说多种语言
+// 兼容旧的硬编码中文难度名称，新旧和谐共存
+extension GameRecord {
+    func localizedDifficultyName(localization: LocalizationManager) -> String {
+        // 这里就像一个万能翻译官，不管数据库里存的是哪国语言的“简单”，
+        // 都要把它翻译成当前用户设置语言的“简单”。
+        switch difficultyName {
+        case "简单", "簡單", "Easy", "簡単", "쉬움", "Легко", "Facile", "سهل":
+            return localization.text(.difficultyEasy)
+            
+        case "普通", "Medium", "보통", "Средне", "Moyen", "متوسط":
+            return localization.text(.difficultyMedium)
+            
+        case "困难", "困難", "Hard", "難しい", "어려움", "Сложно", "Difficile", "صعب":
+            return localization.text(.difficultyHard)
+            
+        case "地狱", "地獄", "Hell", "지옥", "Ад", "Enfer", "جحيم":
+            return localization.text(.difficultyHell)
+            
+        default:
+            // 如果遇到实在不认识的（比如未来加了火星文），就原样显示
+            return difficultyName
+        }
     }
 }

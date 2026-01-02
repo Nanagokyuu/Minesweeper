@@ -5,15 +5,7 @@
 //  Created by Nanagokyuu on 2025/12/22.
 //
 
-
 import SwiftUI
-
-// MARK: - 锁屏配置
-class AppDelegate: NSObject, UIApplicationDelegate {
-    func application(_ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
-        return .portrait
-    }
-}
 
 @main
 struct MinesweeperApp: App {
@@ -23,7 +15,7 @@ struct MinesweeperApp: App {
         WindowGroup {
             ContentView()
                 .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
-                .preferredColorScheme(.light) // 强制浅色模式
+                .preferredColorScheme(.light) // 强制浅色模式，未来也许会改，现在先这么待着吧
         }
     }
 }

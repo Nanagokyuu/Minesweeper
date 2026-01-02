@@ -4,11 +4,15 @@
 //
 //  Created by Nanagokyuu on 2025/12/28.
 //
+//  玩地平线4的时候突发的灵感，就这么尝试实现了一下子
+//  现在还能用五种语言看回放，国际化就是这么简单
 
 import SwiftUI
 
 // 回放影院：坐好，爆米花准备，开始欣赏或复盘
+// 现在支持多语言字幕了（虽然没有真的字幕）
 struct ReplayView: View {
+    @ObservedObject var localization = LocalizationManager.shared
     @StateObject var viewModel: ReplayViewModel
     @Environment(\.dismiss) var dismiss
     
@@ -20,9 +24,9 @@ struct ReplayView: View {
             // 顶部栏
             HStack {
                 // 关灯散场
-                Button("关闭") { dismiss() }
+                Button(localization.text(.close)) { dismiss() }
                 Spacer()
-                Text("游戏回放").font(.headline)
+                Text(localization.text(.replayTitle)).font(.headline)
                 Spacer()
                 // 倍速切换：剧情快进，小心漏掉细节
                 Button(action: {
@@ -43,14 +47,17 @@ struct ReplayView: View {
                 Color(UIColor.systemGroupedBackground) // 幕布背景，低调不抢戏
                 
                 ZoomableScrollView {
-                    // 【回归本质】：使用 VStack + HStack
                     VStack(spacing: 2) {
                         ForEach(0..<viewModel.rows, id: \.self) { row in
                             HStack(spacing: 2) {
                                 ForEach(0..<viewModel.cols, id: \.self) { col in
                                     let index = row * viewModel.cols + col
                                     if index < viewModel.grid.count {
-                                        CellView(cell: viewModel.grid[index])
+                                        // 【修复报错的关键点】在这里！
+                                        // 回放时我们不需要透视（或者说回放本来就是为了看清过程），
+                                        // 所以 isGodMode 传 false 即可
+                                        CellView(cell: viewModel.grid[index], isGodMode: false)
+                                            .equatable() // 别忘了这个优化
                                             .frame(width: baseCellSize, height: baseCellSize)
                                     }
                                 }
@@ -68,7 +75,7 @@ struct ReplayView: View {
                 Slider(value: Binding(
                     get: { viewModel.progress },
                     set: { newVal in
-                        let step = Int(newVal * Double(viewModel.record.moves?.count ?? 0))
+                        let step = Int(newVal * Double(viewModel.moves.count))
                         viewModel.seek(to: step)
                     }
                 ))
@@ -84,7 +91,7 @@ struct ReplayView: View {
                         .symbolRenderingMode(.hierarchical)
                 }
                 
-                Text("步数: \(viewModel.currentStepIndex) / \(viewModel.record.moves?.count ?? 0)") // 片长统计
+                Text("\(localization.text(.stepCount)): \(viewModel.currentStepIndex) / \(viewModel.moves.count)") // 片长统计
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .monospacedDigit()
@@ -96,9 +103,15 @@ struct ReplayView: View {
     }
     
     private func cycleSpeed() {
-        // 倍速循环：1x → 2x → 4x → 回到 1x
+        // 倍速循环：1x -> 2x -> 4x -> 回到 1x
         if viewModel.playbackSpeed == 1.0 { viewModel.playbackSpeed = 2.0 }
         else if viewModel.playbackSpeed == 2.0 { viewModel.playbackSpeed = 4.0 }
         else { viewModel.playbackSpeed = 1.0 }
+        
+        // 如果正在播放，重启计时器以应用新速度
+        if viewModel.isPlaying {
+            viewModel.togglePlay() // 先停
+            viewModel.togglePlay() // 再开
+        }
     }
 }
