@@ -143,6 +143,7 @@ struct SettingsView: View {
                
                 // MARK: - 关于
                 Section(header: Text(localization.text(.about))) {
+                    // 版本号
                     HStack {
                         Image(systemName: "info.circle.fill")
                             .foregroundColor(.gray)
@@ -152,6 +153,27 @@ struct SettingsView: View {
                         Text("v0.9.255")
                             .foregroundColor(.secondary)
                             .font(.footnote)
+                    }
+                    
+                    // GitHub 链接按钮
+                    // 点击后在浏览器中打开项目仓库，欢迎 Star & Fork！
+                    Button(action: {
+                        if let url = URL(string: "https://github.com/Nanagokyuu/Minesweeper") {
+                            UIApplication.shared.open(url)
+                            HapticManager.shared.light()
+                        }
+                    }) {
+                        HStack {
+                            Image(systemName: "chevron.left.forwardslash.chevron.right")
+                                .foregroundColor(.black)
+                                .frame(width: 24)
+                            Text("GitHub")
+                                .foregroundColor(.primary)
+                            Spacer()
+                            Image(systemName: "arrow.up.forward")
+                                .foregroundColor(.secondary)
+                                .font(.caption)
+                        }
                     }
                 }
             }
