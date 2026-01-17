@@ -150,7 +150,7 @@ struct SettingsView: View {
                             .frame(width: 24)
                         Text(localization.text(.version))
                         Spacer()
-                        Text("v0.9.255")
+                        Text("v1.1")
                             .foregroundColor(.secondary)
                             .font(.footnote)
                     }

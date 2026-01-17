@@ -1,8 +1,9 @@
 //
-//  GameViews.swift (多语言版本)
+//  GameViews.swift (多语言版本 + Mac 鼠标支持)
 //  Minesweeper
 //
 //  Created by Nanagokyuu on 2025/12/22.
+//  Enhanced for Mac (iPad version) by Claude on 2026/01/16
 //
 
 import SwiftUI
@@ -22,6 +23,20 @@ struct GameView: View {
     // MARK: - 缩放相关状态
     // 格子大小：太小了费眼睛，太大了费手指
     private let baseCellSize: CGFloat = 35.0
+    
+    // 【新增】检测是否在 Mac 上运行（iPad 版本）
+    // 这个判断在 Mac 上运行 iPad 应用时返回 true
+    private var isRunningOnMac: Bool {
+        #if targetEnvironment(macCatalyst)
+        return true
+        #else
+        // 在 Mac 上运行的 iPad 应用，进程名会包含 Mac 相关信息
+        if ProcessInfo.processInfo.isiOSAppOnMac {
+            return true
+        }
+        return false
+        #endif
+    }
     
     // 【关键】：初始化逻辑
     // 上帝掷骰子的地方，或者你指定上帝掷出几点（如果有 seed）
@@ -63,7 +78,12 @@ struct GameView: View {
                 Spacer()
                 
                 // 3. 底部模式切换栏：工欲善其事，必先利其器
-                footerView
+                // 【Mac 优化】在 Mac 上隐藏模式切换按钮或显示提示
+                if isRunningOnMac {
+                    macFooterView
+                } else {
+                    footerView
+                }
             }
             // 游戏结束时模糊背景，让你的注意力集中在那个残酷的结果上
             .blur(radius: game.showResult ? 10 : 0)
@@ -208,13 +228,25 @@ struct GameView: View {
                             let index = row * game.cols + col
                             if index < game.grid.count {
                                 // 【修改】将当前皮肤 (game.currentTheme) 传递给格子
-                                CellView(cell: game.grid[index], isGodMode: game.isGodMode, theme: game.currentTheme)
-                                    .equatable()
+                                // 【Mac 增强】在 Mac 上使用支持右键的视图
+                                if isRunningOnMac {
+                                    MouseAwareCellView(
+                                        cell: game.grid[index],
+                                        isGodMode: game.isGodMode,
+                                        theme: game.currentTheme,
+                                        onLeftClick: { handleSmartTap(at: index) },
+                                        onRightClick: { game.toggleFlag(at: index) }
+                                    )
                                     .frame(width: baseCellSize, height: baseCellSize)
-                                    // 点击：可能是惊喜，也可能是惊吓
-                                    .onTapGesture { handleSmartTap(at: index) }
-                                    // 长按：深思熟虑后的标记
-                                    .onLongPressGesture(minimumDuration: 0.25) { handleSmartLongPress(at: index) }
+                                } else {
+                                    CellView(cell: game.grid[index], isGodMode: game.isGodMode, theme: game.currentTheme)
+                                        .equatable()
+                                        .frame(width: baseCellSize, height: baseCellSize)
+                                        // 点击：可能是惊喜，也可能是惊吓
+                                        .onTapGesture { handleSmartTap(at: index) }
+                                        // 长按：深思熟虑后的标记
+                                        .onLongPressGesture(minimumDuration: 0.25) { handleSmartLongPress(at: index) }
+                                }
                             }
                         }
                     }
@@ -228,7 +260,7 @@ struct GameView: View {
         .padding(.horizontal, 10)
     }
     
-    // 底部操作栏：你的武器库
+    // 底部操作栏（iOS 和 Mac 触摸屏）：你的武器库
     private var footerView: some View {
         VStack {
             HStack(spacing: 20) {
@@ -268,6 +300,41 @@ struct GameView: View {
         }
     }
     
+    // 【新增】Mac 底部操作栏：显示鼠标操作提示
+    private var macFooterView: some View {
+        VStack(spacing: 10) {
+            // 鼠标操作提示
+            HStack(spacing: 20) {
+                HStack(spacing: 8) {
+                    Image(systemName: "cursorarrow.click")
+                        .foregroundColor(.blue)
+                    Text("Left Click: Dig")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                
+                HStack(spacing: 8) {
+                    Image(systemName: "cursorarrow.click.2")
+                        .foregroundColor(.orange)
+                    Text("Right Click: Flag")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(.ultraThinMaterial)
+            .cornerRadius(12)
+            
+            // 退出按钮：留得青山在，不怕没柴烧
+            Button(localization.text(.exitGame)) {
+                presentationMode.wrappedValue.dismiss()
+            }
+            .foregroundColor(.gray).font(.caption).padding(.bottom, 5)
+            .disabled(game.gameStatus == .exploding)
+        }
+    }
+    
     // MARK: - 交互逻辑 (保持不变)
     
     private func handleSmartTap(at index: Int) {
@@ -275,8 +342,8 @@ struct GameView: View {
         if cell.isRevealed {
             game.quickReveal(at: index)
         } else {
-            switch inputMode {
-            case .dig:
+            // 【Mac 优化】在 Mac 上左键直接挖雷
+            if isRunningOnMac {
                 if cell.isFlagged {
                     HapticManager.shared.light()
                 } else {
@@ -284,8 +351,20 @@ struct GameView: View {
                         game.revealCell(at: index)
                     }
                 }
-            case .flag:
-                game.toggleFlag(at: index)
+            } else {
+                // iOS 保持原有逻辑
+                switch inputMode {
+                case .dig:
+                    if cell.isFlagged {
+                        HapticManager.shared.light()
+                    } else {
+                        withAnimation(.interactiveSpring(response: 0.3, dampingFraction: 0.6)) {
+                            game.revealCell(at: index)
+                        }
+                    }
+                case .flag:
+                    game.toggleFlag(at: index)
+                }
             }
         }
     }
@@ -302,5 +381,80 @@ struct GameView: View {
         let m = seconds / 60
         let s = seconds % 60
         return String(format: "%02d:%02d", m, s)
+    }
+}
+
+// MARK: - 【新增】支持鼠标右键的格子视图（Mac iPad 应用专用）
+struct MouseAwareCellView: UIViewRepresentable {
+    let cell: Cell
+    let isGodMode: Bool
+    let theme: GameTheme
+    let onLeftClick: () -> Void
+    let onRightClick: () -> Void
+    
+    func makeUIView(context: Context) -> UIView {
+        let containerView = UIView()
+        containerView.backgroundColor = .clear
+        
+        // 创建 SwiftUI 的 CellView 并嵌入
+        let cellView = CellView(cell: cell, isGodMode: isGodMode, theme: theme)
+            .equatable()
+        
+        let hostingController = UIHostingController(rootView: cellView)
+        hostingController.view.backgroundColor = .clear
+        hostingController.view.frame = containerView.bounds
+        hostingController.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        containerView.addSubview(hostingController.view)
+        
+        // 保存 hostingController 到 coordinator，以便后续更新
+        context.coordinator.hostingController = hostingController
+        
+        // 添加手势识别器
+        // 左键点击（主要按钮 = 0）
+        let leftClickGesture = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleLeftClick))
+        leftClickGesture.buttonMaskRequired = .primary // 主按钮（鼠标左键）
+        containerView.addGestureRecognizer(leftClickGesture)
+        
+        // 右键点击（次要按钮 = 1）
+        let rightClickGesture = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleRightClick))
+        rightClickGesture.buttonMaskRequired = .secondary // 次要按钮（鼠标右键）
+        containerView.addGestureRecognizer(rightClickGesture)
+        
+        // 保存回调到 coordinator
+        context.coordinator.onLeftClick = onLeftClick
+        context.coordinator.onRightClick = onRightClick
+        
+        return containerView
+    }
+    
+    func updateUIView(_ uiView: UIView, context: Context) {
+        // 【修复】更新 CellView - 使用保存的 hostingController
+        let cellView = CellView(cell: cell, isGodMode: isGodMode, theme: theme)
+            .equatable()
+        
+        context.coordinator.hostingController?.rootView = cellView
+        
+        // 更新回调
+        context.coordinator.onLeftClick = onLeftClick
+        context.coordinator.onRightClick = onRightClick
+    }
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+    
+    class Coordinator: NSObject {
+        var onLeftClick: (() -> Void)?
+        var onRightClick: (() -> Void)?
+        // 【新增】保存 hostingController 引用
+        var hostingController: UIHostingController<EquatableView<CellView>>?
+        
+        @objc func handleLeftClick() {
+            onLeftClick?()
+        }
+        
+        @objc func handleRightClick() {
+            onRightClick?()
+        }
     }
 }
