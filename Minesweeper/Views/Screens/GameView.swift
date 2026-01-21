@@ -20,6 +20,9 @@ struct GameView: View {
     // 提示文本状态：告诉用户"种子已复制"，虽然他们可能只是手滑
     @State private var showCopyToast = false
     
+    // 【新增】追踪当前鼠标悬停的格子索引，用于键盘操作
+    @State private var hoveredIndex: Int? = nil
+    
     // MARK: - 缩放相关状态
     // 格子大小：太小了费眼睛，太大了费手指
     private let baseCellSize: CGFloat = 35.0
@@ -114,6 +117,29 @@ struct GameView: View {
                     onReview: { withAnimation { game.showResult = false } }, // 复盘：看看你是怎么死的
                     onExit: { presentationMode.wrappedValue.dismiss() } // 逃跑：虽然可耻但有用
                 )
+            }
+            
+            // 【新增】键盘事件响应器 (隐藏的按钮)
+            // 利用 Button 的 keyboardShortcut 可以在整个 View 树中捕获按键
+            // 只有在 Mac 上运行且没有弹窗时才生效
+            if isRunningOnMac && !game.showResult {
+                Group {
+                    Button(action: { handleKeyZ() }) { Text("Z").opacity(0) }
+                        .keyboardShortcut("z", modifiers: []) // 监听 Z 键，无修饰符
+                    
+                    Button(action: { handleKeyX() }) { Text("X").opacity(0) }
+                        .keyboardShortcut("x", modifiers: []) // 监听 X 键，无修饰符
+                        
+                    // 【新增】ESC 键退出游戏，无修饰符
+                    Button(action: {
+                        // 爆炸时禁止退出，防止动画未结束导致状态异常（与退出按钮逻辑一致）
+                        if game.gameStatus != .exploding {
+                            presentationMode.wrappedValue.dismiss()
+                        }
+                    }) { Text("ESC").opacity(0) }
+                        .keyboardShortcut(.escape, modifiers: [])
+                }
+                .frame(width: 0, height: 0) // 隐藏起来
             }
         }
         .navigationBarHidden(true)
@@ -238,6 +264,15 @@ struct GameView: View {
                                         onRightClick: { game.toggleFlag(at: index) }
                                     )
                                     .frame(width: baseCellSize, height: baseCellSize)
+                                    // 【新增】追踪鼠标悬停位置，为了让键盘 Z/X 知道该炸谁
+                                    .onHover { isHovering in
+                                        if isHovering {
+                                            self.hoveredIndex = index
+                                        } else if self.hoveredIndex == index {
+                                            // 离开时如果当前记录还是自己，则置空
+                                            self.hoveredIndex = nil
+                                        }
+                                    }
                                 } else {
                                     CellView(cell: game.grid[index], isGodMode: game.isGodMode, theme: game.currentTheme)
                                         .equatable()
@@ -301,22 +336,27 @@ struct GameView: View {
     }
     
     // 【新增】Mac 底部操作栏：显示鼠标操作提示
+    // 现在改为了键盘提示，Z和X是新的神
     private var macFooterView: some View {
         VStack(spacing: 10) {
-            // 鼠标操作提示
+            // 鼠标操作提示 (现在是键盘快捷键提示)
             HStack(spacing: 20) {
                 HStack(spacing: 8) {
-                    Image(systemName: "cursorarrow.click")
+                    // 图标改为键盘，更直观
+                    Image(systemName: "keyboard")
                         .foregroundColor(.blue)
-                    Text("Left Click: Dig")
+                    // Z键: 挖雷
+                    Text(localization.text(.keyZDig))
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
                 
                 HStack(spacing: 8) {
-                    Image(systemName: "cursorarrow.click.2")
+                    // 图标改为键盘
+                    Image(systemName: "keyboard")
                         .foregroundColor(.orange)
-                    Text("Right Click: Flag")
+                    // X键: 插旗
+                    Text(localization.text(.keyXFlag))
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -336,6 +376,23 @@ struct GameView: View {
     }
     
     // MARK: - 交互逻辑 (保持不变)
+    
+    // 【新增】处理 Z 键 (挖雷)
+    private func handleKeyZ() {
+        guard let index = hoveredIndex, game.gameStatus == .playing else { return }
+        // 模拟智能点击（如果是未翻开则挖开，如果是已翻开则尝试双击）
+        handleSmartTap(at: index)
+    }
+    
+    // 【新增】处理 X 键 (插旗)
+    private func handleKeyX() {
+        guard let index = hoveredIndex, game.gameStatus == .playing else { return }
+        // 直接插旗/取消插旗
+        let cell = game.grid[index]
+        if !cell.isRevealed {
+            game.toggleFlag(at: index)
+        }
+    }
     
     private func handleSmartTap(at index: Int) {
         let cell = game.grid[index]

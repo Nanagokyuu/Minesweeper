@@ -198,6 +198,8 @@ enum LocalizedKey {
     // 其他
     case goodLuck
     case betterLuckNextTime
+    case keyZDig
+    case keyXFlag
     
     func localized(for language: AppLanguage) -> String {
         switch language {
@@ -298,6 +300,8 @@ enum LocalizedKey {
         case .clearHistoryConfirm: return "确定要删除所有历史记录吗？此操作不可撤销。"
         case .about: return "关于"
         case .version: return "版本"
+        case .keyZDig: return "Z键: 挖雷"
+        case .keyXFlag: return "X键: 插旗"
             
         case .goodLuck: return "祝你好运"
         case .betterLuckNextTime: return "下次好运."
@@ -390,6 +394,8 @@ enum LocalizedKey {
         case .clearHistoryConfirm: return "Delete all history? This cannot be undone."
         case .about: return "About"
         case .version: return "Version"
+        case .keyZDig: return "Z: Dig"
+        case .keyXFlag: return "X: Flag"
             
         case .goodLuck: return "Good luck"
         case .betterLuckNextTime: return "Better luck next time."
@@ -482,6 +488,8 @@ enum LocalizedKey {
         case .clearHistoryConfirm: return "確定要刪除所有歷史記錄嗎？此操作不可撤銷。"
         case .about: return "關於"
         case .version: return "版本"
+        case .keyZDig: return "Z鍵: 挖雷"
+        case .keyXFlag: return "X鍵: 插旗"
             
         case .goodLuck: return "祝你好運"
         case .betterLuckNextTime: return "下次好運."
@@ -574,6 +582,8 @@ enum LocalizedKey {
         case .clearHistoryConfirm: return "すべての履歴を削除しますか？この操作は取り消せません。"
         case .about: return "について"
         case .version: return "バージョン"
+        case .keyZDig: return "Z: 掘る"
+        case .keyXFlag: return "X: 旗"
             
         case .goodLuck: return "がんばって"
         case .betterLuckNextTime: return "次回がんばって."
@@ -666,6 +676,8 @@ enum LocalizedKey {
         case .clearHistoryConfirm: return "모든 기록을 삭제하시겠습니까? 되돌릴 수 없습니다."
         case .about: return "정보"
         case .version: return "버전"
+        case .keyZDig: return "Z: 파기"
+        case .keyXFlag: return "X: 깃발"
             
         case .goodLuck: return "행운을 빕니다"
         case .betterLuckNextTime: return "다음엔 잘하세요."
@@ -758,6 +770,8 @@ enum LocalizedKey {
         case .clearHistoryConfirm: return "Удалить всю историю? Это нельзя отменить."
         case .about: return "О приложении"
         case .version: return "Версия"
+        case .keyZDig: return "Z: Копать"
+        case .keyXFlag: return "X: Флаг"
             
         case .goodLuck: return "Удачи"
         case .betterLuckNextTime: return "Повезет в другой раз."
@@ -850,6 +864,8 @@ enum LocalizedKey {
         case .clearHistoryConfirm: return "Tout supprimer ? Impossible d'annuler."
         case .about: return "À propos"
         case .version: return "Version"
+        case .keyZDig: return "Z: Creuser"
+        case .keyXFlag: return "X: Drapeau"
             
         case .goodLuck: return "Bonne chance"
         case .betterLuckNextTime: return "La prochaine fois sera la bonne."
@@ -942,6 +958,8 @@ enum LocalizedKey {
         case .clearHistoryConfirm: return "حذف كل السجل؟ لا يمكن التراجع."
         case .about: return "حول"
         case .version: return "إصدار"
+        case .keyZDig: return "Z: حفر"
+        case .keyXFlag: return "X: عَلَم"
             
         case .goodLuck: return "حظاً موفقاً"
         case .betterLuckNextTime: return "حظاً أوفر في المرة القادمة."
