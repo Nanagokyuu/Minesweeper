@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  rust:
+    name: Rust core
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.98.0"
+          components: clippy, rustfmt
+
+      - name: Add iOS targets
+        run: rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios
+
+      - name: Format
+        run: cargo fmt --manifest-path Rust/Cargo.toml -- --check
+
+      - name: Clippy
+        run: cargo clippy --manifest-path Rust/Cargo.toml --all-targets -- -D warnings
+
+      - name: Tests
+        run: cargo test --manifest-path Rust/Cargo.toml --lib
+
+  ios:
+    name: iOS build
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.98.0"
+
+      - name: Add iOS targets
+        run: rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios
+
+      - name: Build
+        run: |
+          xcodebuild build \
+            -project Minesweeper.xcodeproj \
+            -scheme Minesweeper \
+            -configuration Release \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Tests
+        run: |
+          xcodebuild test \
+            -project Minesweeper.xcodeproj \
+            -scheme Minesweeper \
+            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            CODE_SIGNING_ALLOWED=NO

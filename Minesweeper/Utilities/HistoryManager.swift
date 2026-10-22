@@ -2,121 +2,297 @@
 //  HistoryManager.swift
 //  Minesweeper
 //
-//  Created by Nanagokyuu on 2025/12/24.
+//  Persistence adapter: `UserDefaults`/iCloud stay in Swift, while sorting,
+//  pinning, de-duplication, the 50-record cap and JSON live in Rust.
 //
-//  历史记录说真的不见得多实用，我只是想顺手做一个
-//  不是我怎么越做越上头了，还加了回放功能
-//  甚至支持了多语言，停不下来了属于是
 
 import Foundation
 import Combine
 
-// MARK: - 管理器
-class HistoryManager: ObservableObject {
+@MainActor
+final class HistoryManager: ObservableObject {
     static let shared = HistoryManager()
+
     private let key = "minesweeper_history_v4"
-    
-    // 【新增】发布者属性
-    // 界面直接读取这个数组，一旦变化，界面自动刷新
-    // 避免了在 View 的 body 里频繁调用 load() 读取硬盘，性能更佳
-    @Published var records: [GameRecord] = []
-    
+    private let legacyKeys = [
+        "minesweeper_history_v3",
+        "minesweeper_history_v2",
+        "minesweeper_history_v1",
+        "minesweeper_history",
+    ]
+    private let backupKey = "minesweeper_history_v4_unreadable_backup"
+    private let deletedIDsKey = "minesweeper_history_v4_deleted_ids"
+    private let clearedAtKey = "minesweeper_history_v4_cleared_at"
+
+    @Published private(set) var records: [CoreRecord] = []
+
+    private let core = CoreHistory()
+    /// True when the stored payload existed but could not be decoded.  In that
+    /// case `persist()` must not silently replace it with `[]`; the raw bytes
+    /// are copied to `backupKey` first.
+    private var loadFailed = false
+    /// Cross-device tombstones: record ID -> deletion date (Apple reference
+    /// seconds).  They are re-applied after every cloud merge so a remote copy
+    /// cannot resurrect a deleted game, and pruned after 90 days.
+    private var tombstoneTimestamps: [String: Double] = [:]
+    private var deletedIDs: Set<String> { Set(tombstoneTimestamps.keys) }
+    /// Apple-reference seconds; records at or before this instant are hidden.
+    private var clearedAt: Double = 0
+    /// Compression/UserDefaults writes are serialized off the main actor;
+    /// uploads are bounced back so CloudSyncManager stays main-actor isolated.
+    private let persistenceQueue = DispatchQueue(
+        label: "com.oakacorn.Minesweeper.history-persistence",
+        qos: .userInitiated
+    )
+    private var persistenceGeneration = 0
+
     private init() {
-        // 初始化时从硬盘加载一次
-        self.records = loadFromDisk()
+        loadFromDisk()
     }
-    
-    // 保存单条
-    // 记录下这一刻，虽然你可能很快就想删掉它
-    func save(_ record: GameRecord) {
-        var currentHistory = loadFromDisk()
-        // 新记录插入到非置顶区域的最前面
-        currentHistory.insert(record, at: 0)
-        
-        // 限制数量 (保留最近50条)
-        // 太多了也记不住，50条足够你回味（或反思）了
-        if currentHistory.count > 50 {
-            currentHistory = Array(currentHistory.prefix(50))
-        }
-        
-        saveToDisk(currentHistory)
-        // 自动上传到 iCloud
-        CloudSyncManager.shared.uploadToCloud()
+
+    // MARK: - Mutations
+    func save(_ record: CoreRecord) {
+        // Merge first so this save cannot clobber another device's games.
+        mergeCloudInMemory()
+        records = core.add(record: record)
+        persist()
     }
-    
-    // 删除单条
-    // 毁尸灭迹，假装无事发生
-    func delete(_ record: GameRecord) {
-        var currentHistory = loadFromDisk()
-        currentHistory.removeAll { $0.id == record.id }
-        saveToDisk(currentHistory)
-        // 同步删除
-        CloudSyncManager.shared.uploadToCloud()
+
+    func delete(_ record: CoreRecord) {
+        // Merge, then re-apply the deletion.  Without the second delete the
+        // record would immediately come back from the cloud copy.
+        records = core.delete(id: record.id)
+        mergeCloudInMemory()
+        tombstoneTimestamps[record.id] = Date().timeIntervalSinceReferenceDate
+        records = core.delete(id: record.id)
+        persist()
     }
-    
-    // 切换置顶状态
-    // 把这场战斗钉在耻辱柱（或荣誉墙）上
-    func togglePin(_ record: GameRecord) {
-        var currentHistory = loadFromDisk()
-        if let index = currentHistory.firstIndex(where: { $0.id == record.id }) {
-            currentHistory[index].isPinned.toggle()
-            saveToDisk(currentHistory) // 保存时会自动排序
-            // 同步置顶状态
-            CloudSyncManager.shared.uploadToCloud()
-        }
-    }
-    
-    // 清空所有
-    func clear() {
-        UserDefaults.standard.removeObject(forKey: key)
-        self.records = [] // 更新内存数据
-    }
-    
-    // 重新加载（供 CloudSyncManager 调用以刷新 UI）
-    func reload() {
-        self.records = loadFromDisk()
-    }
-    
-    // MARK: - 内部私有方法
-    
-    // 从磁盘读取并排序
-    private func loadFromDisk() -> [GameRecord] {
-        guard let data = UserDefaults.standard.data(forKey: key),
-              let history = try? JSONDecoder().decode([GameRecord].self, from: data) else {
-            return []
-        }
-        
-        // 排序逻辑：
-        // 1. isPinned 为 true 的排在前面
-        // 2. 如果置顶状态相同，则按 date 倒序 (新的在前)
-        return history.sorted { (a, b) -> Bool in
-            if a.isPinned != b.isPinned {
-                return a.isPinned // true 排在 false 前面
+
+    func togglePin(_ record: CoreRecord) {
+        let targetPinned = !record.isPinned
+        mergeCloudInMemory()
+
+        if let current = core.records().first(where: { $0.id == record.id }) {
+            if current.isPinned != targetPinned {
+                records = core.togglePin(id: record.id)
+            } else {
+                records = core.records()
             }
-            return a.date > b.date
+        } else {
+            records = core.records()
+        }
+        persist()
+    }
+
+    func clear() {
+        loadFailed = false
+        tombstoneTimestamps.removeAll()
+        clearedAt = Date().timeIntervalSinceReferenceDate
+        records = core.clear()
+        // Do not merge the cloud copy back in here: the user explicitly asked
+        // to clear.  The empty payload + clearedAt marker is uploaded so other
+        // devices remove records older than this instant.
+        persist()
+    }
+
+    // MARK: - Cloud
+    /// Merge a downloaded cloud payload into the local list.
+    func mergeCloud(_ data: Data) {
+        mergeCloudInMemory(payload: data)
+        persist(upload: false)
+    }
+
+    /// Two-way sync used by the "Sync Now" button: merge the remote copy first,
+    /// then write the union back so one device cannot clobber another's games.
+    func syncWithCloud() {
+        mergeCloudInMemory()
+        persist()
+    }
+
+    // MARK: - Loading
+    func reload() {
+        persistenceQueue.sync {}
+        loadFromDisk()
+    }
+
+
+    private func loadFromDisk() {
+        loadMetadataFromDisk()
+        var sourceKey = key
+        var data = UserDefaults.standard.data(forKey: key)
+
+        if data == nil {
+            for legacyKey in legacyKeys {
+                if let legacyData = UserDefaults.standard.data(forKey: legacyKey) {
+                    data = legacyData
+                    sourceKey = legacyKey
+                    break
+                }
+            }
+        }
+
+        guard let data, !data.isEmpty else {
+            core.load(data: Data())
+            records = core.records()
+            loadFailed = false
+            return
+        }
+
+        // The payload may be the compressed "MSH1" envelope or legacy raw JSON.
+        guard let json = HistoryCodec.decode(data) else {
+            UserDefaults.standard.set(data, forKey: backupKey)
+            core.load(data: Data())
+            records = core.records()
+            loadFailed = true
+            return
+        }
+
+        // Rust treats malformed JSON as an empty list.  Validate the container
+        // first so a corrupt payload is preserved instead of being overwritten
+        // on the next game result.
+        guard (try? JSONSerialization.jsonObject(with: json)) is [Any] else {
+            UserDefaults.standard.set(data, forKey: backupKey)
+            core.load(data: Data())
+            records = core.records()
+            loadFailed = true
+            return
+        }
+
+        core.load(data: json)
+        applyTombstonesAndClear()
+        loadFailed = false
+
+        if sourceKey != key {
+            // Migrate older keys to the current key using the compressed
+            // envelope, but do not touch the cloud copy until the next save.
+            writeLocalPayload()
         }
     }
-    
-    // 保存到磁盘并更新内存
-    private func saveToDisk(_ history: [GameRecord]) {
-        // 保存前再排一次序，确保数据整洁
-        let sortedHistory = history.sorted {
-            if $0.isPinned != $1.isPinned { return $0.isPinned }
-            return $0.date > $1.date
+
+    // MARK: - Storage
+    /// Merge-before-upload: a local save must not overwrite records that
+    /// another device added since our last download.  Empty/corrupt cloud
+    /// payloads are ignored by Rust, so this cannot erase local history.
+    private func mergeCloudInMemory(payload: Data? = nil) {
+        let cloudTombstones = CloudSyncManager.shared.readCloudTombstones()
+        tombstoneTimestamps = HistorySyncPolicy.mergeTombstones(
+            tombstoneTimestamps,
+            cloudTombstones
+        )
+        pruneTombstones()
+
+        let cloudClearedAt = CloudSyncManager.shared.readCloudClearedAt()
+        if cloudClearedAt > clearedAt {
+            clearedAt = cloudClearedAt
         }
-        
-        if let encoded = try? JSONEncoder().encode(sortedHistory) {
-            UserDefaults.standard.set(encoded, forKey: key)
-            UserDefaults.standard.synchronize()
-            
-            // 【关键】更新 @Published 属性，通知 UI 刷新
-            self.records = sortedHistory
+
+        if let cloud = payload ?? CloudSyncManager.shared.readCloudHistory(),
+           let json = HistoryCodec.decode(cloud) {
+            records = core.mergeCloud(data: json)
+        }
+        applyTombstonesAndClear()
+    }
+
+    private func applyTombstonesAndClear() {
+        pruneTombstones()
+        for record in core.records()
+        where HistorySyncPolicy.shouldHide(
+            record: record,
+            deletedIDs: deletedIDs,
+            clearedAt: clearedAt
+        ) {
+            _ = core.delete(id: record.id)
+        }
+        records = core.records()
+    }
+
+    private func loadMetadataFromDisk() {
+        if let data = UserDefaults.standard.data(forKey: deletedIDsKey) {
+            if let map = try? JSONDecoder().decode([String: Double].self, from: data) {
+                tombstoneTimestamps = map
+            } else if let ids = try? JSONDecoder().decode([String].self, from: data) {
+                let now = Date().timeIntervalSinceReferenceDate
+                tombstoneTimestamps = Dictionary(uniqueKeysWithValues: ids.map { ($0, now) })
+            } else {
+                tombstoneTimestamps = [:]
+            }
+        } else {
+            tombstoneTimestamps = [:]
+        }
+        clearedAt = UserDefaults.standard.double(forKey: clearedAtKey)
+        pruneTombstones()
+    }
+
+    private func pruneTombstones() {
+        tombstoneTimestamps = HistorySyncPolicy.prunedTombstones(
+            tombstoneTimestamps,
+            now: Date().timeIntervalSinceReferenceDate
+        )
+    }
+
+    private func persist(upload: Bool = true) {
+        let json = core.encode()
+        // Never replace real history with an empty payload on encode failure.
+        guard !(json.isEmpty && !records.isEmpty) else { return }
+        // Preserve an unreadable payload until the user explicitly clears it
+        // or produces a new record.  Once new data is written, the backup key
+        // remains as the recovery copy.
+        guard !(loadFailed && records.isEmpty) else { return }
+        loadFailed = false
+
+        if upload {
+            persistenceGeneration += 1
+        }
+        let generation = persistenceGeneration
+        pruneTombstones()
+        let deletedIDsSnapshot = tombstoneTimestamps
+        let clearedAtValue = clearedAt
+        let key = self.key
+        let deletedIDsKey = self.deletedIDsKey
+        let clearedAtKey = self.clearedAtKey
+        let shouldUpload = upload
+
+        // `core.encode()` is a copy; compression and the UserDefaults write are
+        // the expensive parts for a large history, so keep them off the main
+        // actor.  The serial queue preserves write order.
+        persistenceQueue.async { [weak self] in
+            let payload = HistoryCodec.encode(json) ?? json
+            UserDefaults.standard.set(payload, forKey: key)
+            if let idsData = try? JSONEncoder().encode(deletedIDsSnapshot) {
+                UserDefaults.standard.set(idsData, forKey: deletedIDsKey)
+            }
+            UserDefaults.standard.set(clearedAtValue, forKey: clearedAtKey)
+
+            guard shouldUpload else { return }
+            DispatchQueue.main.async {
+                self?.uploadPersisted(
+                    payload: payload,
+                    deletedIDs: deletedIDsSnapshot,
+                    clearedAt: clearedAtValue,
+                    generation: generation
+                )
+            }
         }
     }
-    
-    // 为了兼容旧代码的 load() 接口（如果有其他地方用到），我们可以保留这个方法
-    // 但建议 UI 层直接使用 .records
-    func load() -> [GameRecord] {
-        return records
+
+    private func uploadPersisted(
+        payload: Data,
+        deletedIDs: [String: Double],
+        clearedAt: Double,
+        generation: Int
+    ) {
+        // A newer local save already queued its upload; skip this stale one.
+        guard generation == persistenceGeneration else { return }
+        CloudSyncManager.shared.uploadMetadata(
+            deletedIDs: deletedIDs,
+            clearedAt: clearedAt
+        )
+        CloudSyncManager.shared.uploadToCloud(payload: payload)
+    }
+
+    private func writeLocalPayload() {
+        let json = core.encode()
+        guard let payload = HistoryCodec.encode(json) else { return }
+        UserDefaults.standard.set(payload, forKey: key)
     }
 }

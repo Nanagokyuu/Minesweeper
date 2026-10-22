@@ -6,14 +6,35 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXContainerItemProxy section */
+		91A00000000000000000000B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 9101AF3D2EF8E9E600421E92 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9101AF442EF8E9E600421E92;
+			remoteInfo = Minesweeper;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		9101AF452EF8E9E600421E92 /* Minesweeper.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Minesweeper.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		91A000000000000000000002 /* MinesweeperTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MinesweeperTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		9101AF472EF8E9E600421E92 /* Minesweeper */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = Minesweeper;
+			sourceTree = "<group>";
+		};
+		91A000000000000000000003 /* MinesweeperTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = MinesweeperTests;
+			sourceTree = "<group>";
+		};
+		91D2F8A5308A213B00EF76B0 /* Rust */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Rust;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -26,13 +47,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		91A000000000000000000005 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		9101AF3C2EF8E9E600421E92 = {
 			isa = PBXGroup;
 			children = (
+				91D2F8A5308A213B00EF76B0 /* Rust */,
 				9101AF472EF8E9E600421E92 /* Minesweeper */,
+				91A000000000000000000003 /* MinesweeperTests */,
 				9101AF462EF8E9E600421E92 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -41,6 +71,7 @@
 			isa = PBXGroup;
 			children = (
 				9101AF452EF8E9E600421E92 /* Minesweeper.app */,
+				91A000000000000000000002 /* MinesweeperTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -52,6 +83,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 9101AF502EF8E9E900421E92 /* Build configuration list for PBXNativeTarget "Minesweeper" */;
 			buildPhases = (
+				9101AF532EF8E9E600421E92 /* Build Rust core */,
 				9101AF412EF8E9E600421E92 /* Sources */,
 				9101AF422EF8E9E600421E92 /* Frameworks */,
 				9101AF432EF8E9E600421E92 /* Resources */,
@@ -70,6 +102,29 @@
 			productReference = 9101AF452EF8E9E600421E92 /* Minesweeper.app */;
 			productType = "com.apple.product-type.application";
 		};
+		91A000000000000000000001 /* MinesweeperTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 91A000000000000000000007 /* Build configuration list for PBXNativeTarget "MinesweeperTests" */;
+			buildPhases = (
+				91A000000000000000000004 /* Sources */,
+				91A000000000000000000005 /* Frameworks */,
+				91A000000000000000000006 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				91A00000000000000000000A /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				91A000000000000000000003 /* MinesweeperTests */,
+			);
+			name = MinesweeperTests;
+			packageProductDependencies = (
+			);
+			productName = MinesweeperTests;
+			productReference = 91A000000000000000000002 /* MinesweeperTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -83,6 +138,10 @@
 					9101AF442EF8E9E600421E92 = {
 						CreatedOnToolsVersion = 26.2;
 						LastSwiftMigration = 2620;
+					};
+					91A000000000000000000001 = {
+						CreatedOnToolsVersion = 26.2;
+						TestTargetID = 9101AF442EF8E9E600421E92;
 					};
 				};
 			};
@@ -101,6 +160,7 @@
 			projectRoot = "";
 			targets = (
 				9101AF442EF8E9E600421E92 /* Minesweeper */,
+				91A000000000000000000001 /* MinesweeperTests */,
 			);
 		};
 /* End PBXProject section */
@@ -113,7 +173,48 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		91A000000000000000000006 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		9101AF532EF8E9E600421E92 /* Build Rust core */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/Rust/src",
+				"$(SRCROOT)/Rust/src/game.rs",
+				"$(SRCROOT)/Rust/src/geometry.rs",
+				"$(SRCROOT)/Rust/src/history.rs",
+				"$(SRCROOT)/Rust/src/lib.rs",
+				"$(SRCROOT)/Rust/src/model.rs",
+				"$(SRCROOT)/Rust/src/replay.rs",
+				"$(SRCROOT)/Rust/src/rng.rs",
+				"$(SRCROOT)/Rust/src/solver.rs",
+				"$(SRCROOT)/Rust/Cargo.toml",
+				"$(SRCROOT)/Rust/Cargo.lock",
+				"$(SRCROOT)/Rust/build-ios.sh",
+			);
+			name = "Build Rust core";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(SRCROOT)/Rust/libs/$(PLATFORM_NAME)/libminesweeper_core.a",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/bash;
+			shellScript = "set -euo pipefail\n\"$SRCROOT/Rust/build-ios.sh\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		9101AF412EF8E9E600421E92 /* Sources */ = {
@@ -123,7 +224,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		91A000000000000000000004 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		91A00000000000000000000A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9101AF442EF8E9E600421E92 /* Minesweeper */;
+			targetProxy = 91A00000000000000000000B /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		9101AF4E2EF8E9E900421E92 /* Debug */ = {
@@ -178,7 +294,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
@@ -235,7 +351,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
@@ -251,13 +367,15 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_ENABLE_MODULES = YES;
-				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_ENTITLEMENTS = Minesweeper/Minesweeper.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 888RK57WJH;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -268,7 +386,15 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/Rust/libs/$(PLATFORM_NAME)",
+				);
 				MARKETING_VERSION = 1.1;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-lminesweeper_core",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.oakacorn.Minesweeper;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -276,6 +402,7 @@
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_INCLUDE_PATHS = "$(inherited) $(SRCROOT)/Rust/include";
 				SWIFT_OBJC_BRIDGING_HEADER = "";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
@@ -290,13 +417,15 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_ENABLE_MODULES = YES;
-				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_ENTITLEMENTS = Minesweeper/Minesweeper.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 888RK57WJH;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -307,7 +436,15 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/Rust/libs/$(PLATFORM_NAME)",
+				);
 				MARKETING_VERSION = 1.1;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-lminesweeper_core",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.oakacorn.Minesweeper;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -315,10 +452,61 @@
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_INCLUDE_PATHS = "$(inherited) $(SRCROOT)/Rust/include";
 				SWIFT_OBJC_BRIDGING_HEADER = "";
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		91A000000000000000000008 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 2;
+				DEVELOPMENT_TEAM = 888RK57WJH;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.oakacorn.MinesweeperTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_INCLUDE_PATHS = "$(inherited) $(SRCROOT)/Rust/include";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Minesweeper.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Minesweeper";
+			};
+			name = Debug;
+		};
+		91A000000000000000000009 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 2;
+				DEVELOPMENT_TEAM = 888RK57WJH;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.oakacorn.MinesweeperTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_INCLUDE_PATHS = "$(inherited) $(SRCROOT)/Rust/include";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Minesweeper.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Minesweeper";
 			};
 			name = Release;
 		};
@@ -339,6 +527,15 @@
 			buildConfigurations = (
 				9101AF512EF8E9E900421E92 /* Debug */,
 				9101AF522EF8E9E900421E92 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		91A000000000000000000007 /* Build configuration list for PBXNativeTarget "MinesweeperTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				91A000000000000000000008 /* Debug */,
+				91A000000000000000000009 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

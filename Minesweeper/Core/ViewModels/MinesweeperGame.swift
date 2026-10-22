@@ -2,122 +2,315 @@
 //  MinesweeperGame.swift
 //  Minesweeper
 //
-//  Created by Nanagokyuu on 2025/12/22.
+//  Thin SwiftUI adapter around the Rust `CoreGame`.  All rules, board
+//  generation, win/loss checks, replay data and history records live in Rust.
 //
 
 import SwiftUI
 import Combine
 
-class MinesweeperGame: ObservableObject {
-    // MARK: - Published 状态
-    @Published var difficulty: Difficulty
-    @Published var grid: [Cell] = []
-    @Published var gameStatus: GameStatus = .playing
+@MainActor
+final class MinesweeperGame: ObservableObject {
+    // MARK: - Published state
+    @Published private(set) var difficulty: Difficulty
+    /// One atomic publish for cells/status/counters.  The clock is separate so
+    /// its once-per-second updates do not invalidate the board.
+    @Published private(set) var state = GameBoardState()
     @Published var showResult: Bool = false
-    
-    // MARK: - 皮肤系统
-    // 既然有人想在雷区里种花，那就满足他
-    // Update: 现在这个属性主要用于游戏内部显示，真正的开关在 AppSettings
-    @Published var currentTheme: GameTheme = .classic
-    
-    // MARK: - 致敬 Cytimax
-    // 上帝模式状态：开启后拥有全知全能的视角
-    @Published var isGodMode: Bool = false
-    
-    // MARK: - 【新增】Nanagokyuu 模式
-    // 也就是所谓的“落地成盒”模式，专门用来坑那些以为输入作者名字会有什么好果子吃的人
-    @Published var isNanagokyuuMode: Bool = false
-    
-    // MARK: - 无猜模式逻辑 (No Guessing Mode)
-    // 【修改】逻辑升级：
-    // 1. 如果是地狱模式，强制关闭无猜（地狱就是用来受苦的，不需要公平）
-    // 2. 如果不是地狱模式，则检查 AppSettings 里的总开关
-    // 这样就把选择权交给了 SettingsView 里的开关
-    var isNoGuessingMode: Bool {
-        if difficulty == .hell { return false }
-        return AppSettings.shared.isNoGuessingEnabled
-    }
-    
-    // MARK: - 历史记录
-    @Published var history: [GameRecord] = []
-    
-    // MARK: - 计时器
-    // 总是有人希望我加这个功能,那就加上吧,看着时间的流逝,焦虑感倍增
-    @Published var timeElapsed: Int = 0
-    var timer: Timer? // 改为 internal 以便扩展访问
-    
-    // MARK: - 种子系统
-    // 感谢Cytimax提出的灵感,不说我还真没想到这个玩法,这就是命运的红线
-    @Published var currentSeed: Int = 0
-    
-    // MARK: - 录制相关属性
-    // 记录你的每一次操作,无论是神之一手还是愚蠢的失误
-    var recordedMoves: [GameMove] = [] // 改为 internal
-    var gameStartTime: Date? // 改为 internal
-    var actualMineIndices: [Int] = [] // 改为 internal
-    
-    var isFirstClick = true // 改为 internal
-    
-    // 计算属性
-    var rows: Int { difficulty.rows }
-    var cols: Int { difficulty.cols }
-    var totalMines: Int { difficulty.totalMines }
-    
-    // 【修改】初始化方法增加 theme 参数
-    // 这样从 SettingsView 修改完回来，新开的游戏就能拿到新皮肤
-    init(difficulty: Difficulty = .easy, theme: GameTheme = .classic, isGodMode: Bool = false, isNanagokyuuMode: Bool = false) {
+
+    let currentTheme: GameTheme
+    let isGodMode: Bool
+    let isNanagokyuuMode: Bool
+    let clock = GameClock()
+
+    // MARK: - Rust core
+    private var core: CoreGame
+    private var timerTask: Task<Void, Never>?
+    private var effectTasks: [Task<Void, Never>] = []
+    private var generation: Int = 0
+
+    // MARK: - Init
+    init(
+        difficulty: Difficulty = .easy,
+        theme: GameTheme? = nil,
+        seed: Int? = nil,
+        isGodMode: Bool = false,
+        isNanagokyuuMode: Bool = false
+    ) {
         self.difficulty = difficulty
-        self.currentTheme = theme // 继承皮肤
-        self.isGodMode = isGodMode // 设置上帝模式状态
-        self.isNanagokyuuMode = isNanagokyuuMode // 注入霉运
-        
-        // 初始化时随机生成一个种子并开始,命运的齿轮开始转动
-        startNewGame()
+        self.currentTheme = theme ?? .classic
+        self.isGodMode = isGodMode
+        self.isNanagokyuuMode = isNanagokyuuMode
+        self.core = Self.makeCore(
+            difficulty: difficulty,
+            seed: seed,
+            godMode: isGodMode,
+            nanagokyuu: isNanagokyuuMode
+        )
+        apply(core.snapshot(), handleEffects: false)
     }
-    
-    // MARK: - 基础生命周期
-    
-    // 切换皮肤：在 💣 和 🌼 之间反复横跳
-    // 兼容旧代码的方法，现在实际由SettingsView控制
-    func toggleTheme() {
-        if currentTheme == .classic {
-            currentTheme = .flower
-        } else {
-            currentTheme = .classic
-        }
-        // 切换皮肤给个震动反馈，让玩家知道变身了
-        HapticManager.shared.light()
-    }
-    
-    func changeDifficulty(_ newDifficulty: Difficulty) {
-        self.difficulty = newDifficulty
-        startNewGame() // 切换难度会自动随机种子,新的挑战
-    }
-    
-    // 启动新游戏 (支持指定种子)
+
+    // MARK: - Read-only view state
+    var rows: Int { state.rows > 0 ? state.rows : difficulty.rows }
+    var cols: Int { state.cols > 0 ? state.cols : difficulty.cols }
+    var grid: [Cell] { state.cells }
+    var gameStatus: GameStatus { state.status }
+    var currentSeed: Int { state.seed }
+    var remainingMines: Int { state.remainingMines }
+    var started: Bool { state.started }
+    var timeElapsed: Int { clock.elapsed }
+
+    // MARK: - Public API used by the views
     func startNewGame(with seed: Int? = nil) {
-        // 如果没有指定种子,就随机生成一个 -> 听天由命
-        // 如果指定了,就用指定的 -> 我命由我不由天
-        if let specificSeed = seed {
-            self.currentSeed = specificSeed
-        } else {
-            // 这里换成了玄学算法,不仅看天,还要看你的手机电量和此刻的心情(时间)
-            self.currentSeed = generateEnvironmentalSeed()
-        }
-        resetGame()
-    }
-    
-    func resetGame() {
+        cancelEffects()
         stopTimer()
-        timeElapsed = 0
-        grid = Array(repeating: Cell(), count: rows * cols)
-        gameStatus = .playing
+        clock.reset()
         showResult = false
-        isFirstClick = true
-        
-        // 重置录制数据
-        recordedMoves = []
-        actualMineIndices = []
-        gameStartTime = nil
+        generation &+= 1
+        core = Self.makeCore(
+            difficulty: difficulty,
+            seed: seed,
+            godMode: isGodMode,
+            nanagokyuu: isNanagokyuuMode
+        )
+        apply(core.snapshot(), handleEffects: false)
+    }
+
+    func revealCell(at index: Int) {
+        guard gameStatus == .playing, index >= 0, index < state.cells.count else { return }
+        apply(core.apply(action: .reveal(index: UInt32(index))), handleEffects: true)
+    }
+
+    func toggleFlag(at index: Int) {
+        guard gameStatus == .playing, index >= 0, index < state.cells.count else { return }
+        apply(core.apply(action: .toggleFlag(index: UInt32(index))), handleEffects: true)
+    }
+
+    func quickReveal(at index: Int) {
+        guard gameStatus == .playing, index >= 0, index < state.cells.count else { return }
+        apply(core.apply(action: .chord(index: UInt32(index))), handleEffects: true)
+    }
+
+    // MARK: - Lifecycle
+    func stop() {
+        cancelEffects()
+        stopTimer()
+    }
+
+    func pause() {
+        stopTimer()
+    }
+
+    func resume() {
+        guard gameStatus == .playing, started else { return }
+        startTimerIfNeeded()
+    }
+
+    func handleScenePhase(_ phase: ScenePhase) {
+        switch phase {
+        case .active:
+            resume()
+        case .inactive, .background:
+            pause()
+        @unknown default:
+            break
+        }
+    }
+
+    // MARK: - Snapshot application
+    private func apply(_ snapshot: CoreSnapshot, handleEffects: Bool) {
+        var cells = snapshot.makeCells()
+        if state.cells.count == cells.count {
+            // Keep the delay that already played for previously revealed
+            // cells.  Otherwise every flag tap would reset all delays and make
+            // every CellView non-equal, forcing a 720-cell re-render.
+            for index in cells.indices where state.cells[index].isRevealed && cells[index].isRevealed {
+                cells[index].animationDelay = state.cells[index].animationDelay
+            }
+        }
+
+        let status: GameStatus
+        switch snapshot.status {
+        case .playing:
+            status = .playing
+        case .won:
+            status = .won
+        case .lost:
+            // Keep the board interaction-disabled while the Rust explosion
+            // plan is played by Swift.  `ShowResult` flips this to .lost.
+            status = snapshot.effects.isEmpty ? .lost : .exploding
+        }
+
+        // A single atomic publish for all board-related state.
+        state = GameBoardState(
+            cells: cells,
+            status: status,
+            seed: Int(snapshot.seed),
+            remainingMines: max(0, Int(snapshot.minesCount) - Int(snapshot.flagsCount)),
+            started: snapshot.started,
+            rows: Int(snapshot.rows),
+            cols: Int(snapshot.cols)
+        )
+
+        // The clock is a separate observable, observed only by the header.
+        // Rust caps elapsed time; mirror it exactly instead of letting the
+        // header and the saved record drift apart.
+        clock.set(Int(snapshot.elapsed))
+
+        switch status {
+        case .playing:
+            if snapshot.started {
+                startTimerIfNeeded()
+            }
+        case .won, .lost, .exploding:
+            stopTimer()
+        }
+
+        if let record = snapshot.finishedRecord {
+            HistoryManager.shared.save(record)
+        }
+        if handleEffects {
+            handle(effects: snapshot.effects)
+        }
+    }
+
+    // MARK: - Effects (the only place Rust decisions touch platform APIs)
+    private func handle(effects: [CoreEffect]) {
+        let currentGeneration = generation
+        for effect in effects {
+            switch effect {
+            case let .haptic(kind, delayMs):
+                schedule(delayMs, generation: currentGeneration) {
+                    switch kind {
+                    case .light: HapticManager.shared.light()
+                    case .heavy: HapticManager.shared.heavy()
+                    case .success: HapticManager.shared.success()
+                    case .failure: HapticManager.shared.failure()
+                    }
+                }
+
+            case let .explosionWave(delayMs, indices):
+                schedule(delayMs, generation: currentGeneration) { [weak self] in
+                    guard let self else { return }
+                    self.setExploding(indices, true)
+                    self.schedule(250, generation: currentGeneration) { [weak self] in
+                        self?.setExploding(indices, false)
+                    }
+                }
+
+            case let .showResult(win, delayMs):
+                schedule(delayMs, generation: currentGeneration) { [weak self] in
+                    guard let self else { return }
+                    var updated = self.state
+                    updated.status = win ? .won : .lost
+                    if updated != self.state {
+                        self.state = updated
+                    }
+                    withAnimation(.spring()) {
+                        self.showResult = true
+                    }
+                }
+            }
+        }
+    }
+
+    private func schedule(
+        _ delayMs: UInt32,
+        generation: Int,
+        _ action: @escaping @MainActor () -> Void
+    ) {
+        if delayMs == 0 {
+            guard generation == self.generation else { return }
+            action()
+            return
+        }
+        let task = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(delayMs) * 1_000_000)
+            guard let self, !Task.isCancelled, self.generation == generation else { return }
+            action()
+        }
+        effectTasks.append(task)
+    }
+
+    private func setExploding(_ indices: [UInt32], _ value: Bool) {
+        var updated = state
+        var changed = false
+        for rawIndex in indices {
+            let index = Int(rawIndex)
+            if index >= 0 && index < updated.cells.count && updated.cells[index].isExploding != value {
+                updated.cells[index].isExploding = value
+                changed = true
+            }
+        }
+        if changed {
+            // One publish for the whole wave instead of one per cell.
+            state = updated
+        }
+    }
+
+    private func cancelEffects() {
+        generation &+= 1
+        effectTasks.forEach { $0.cancel() }
+        effectTasks.removeAll(keepingCapacity: true)
+        if state.cells.contains(where: { $0.isExploding }) {
+            var updated = state
+            for index in updated.cells.indices {
+                updated.cells[index].isExploding = false
+            }
+            state = updated
+        }
+    }
+
+    // MARK: - Timer
+    private func startTimerIfNeeded() {
+        guard timerTask == nil, gameStatus == .playing, started else { return }
+        timerTask = Task { @MainActor [weak self] in
+            var last = Date()
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                guard let self, !Task.isCancelled, self.gameStatus == .playing else { return }
+                let now = Date()
+                let delta = max(1, min(Int(now.timeIntervalSince(last).rounded()), 5))
+                last = now
+                self.tick(seconds: delta)
+            }
+        }
+    }
+
+    private func tick(seconds: Int) {
+        // Rust owns the clock and the 99:59 cap; using its return value keeps
+        // the header and the history record in sync.
+        let elapsed = core.advanceTime(seconds: UInt32(seconds))
+        clock.set(Int(elapsed))
+    }
+
+    private func stopTimer() {
+        timerTask?.cancel()
+        timerTask = nil
+    }
+
+    // MARK: - Config
+    private static func makeCore(
+        difficulty: Difficulty,
+        seed: Int?,
+        godMode: Bool,
+        nanagokyuu: Bool
+    ) -> CoreGame {
+        CoreGame(
+            config: CoreConfig(
+                difficulty: difficulty.core,
+                seed: seed.map(Int64.init),
+                batteryPercent: batteryPercent,
+                noGuessing: difficulty != .hell && AppSettings.shared.isNoGuessingEnabled,
+                godMode: godMode,
+                nanagokyuu: nanagokyuu
+            )
+        )
+    }
+
+    private static var batteryPercent: Int32 {
+        UIDevice.current.isBatteryMonitoringEnabled = true
+        let level = UIDevice.current.batteryLevel
+        return level >= 0 ? Int32((level * 100).rounded()) : 100
     }
 }

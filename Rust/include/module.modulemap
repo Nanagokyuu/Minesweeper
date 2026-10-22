@@ -1,0 +1,7 @@
+module minesweeper_coreFFI {
+    header "minesweeper_coreFFI.h"
+    export *
+    use "Darwin"
+    use "_Builtin_stdbool"
+    use "_Builtin_stdint"
+}

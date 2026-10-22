@@ -14,10 +14,7 @@ struct ReplayView: View {
     // 接收皮肤
     let theme: GameTheme
     @Environment(\.dismiss) var dismiss
-    
-    // 复用 CellView 的尺寸
-    private let baseCellSize: CGFloat = 35.0
-    
+
     var body: some View {
         VStack(spacing: 0) {
             // 顶部栏
@@ -50,43 +47,34 @@ struct ReplayView: View {
             .padding()
             .background(.ultraThinMaterial)
             
-            // 棋盘区域 (复用 ZoomableScrollView)
+            // 棋盘区域：复用游戏棋盘，地狱回放会自动走 Canvas，
+            // 拖拽进度时不再重建 720 个 CellView。
             ZStack {
-                // 背景色跟随系统
                 Color(UIColor.systemGroupedBackground)
-                
-                ZoomableScrollView {
-                    VStack(spacing: 2) {
-                        ForEach(0..<viewModel.rows, id: \.self) { row in
-                            HStack(spacing: 2) {
-                                ForEach(0..<viewModel.cols, id: \.self) { col in
-                                    let index = row * viewModel.cols + col
-                                    if index < viewModel.grid.count {
-                                        // 传入 theme
-                                        CellView(
-                                            cell: viewModel.grid[index],
-                                            isGodMode: false,
-                                            theme: theme
-                                        )
-                                        .equatable()
-                                        .frame(width: baseCellSize, height: baseCellSize)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    .padding(20)
-                    .background(Color.clear)
-                }
+
+                GameBoardView(
+                    cells: viewModel.grid,
+                    rows: viewModel.rows,
+                    cols: viewModel.cols,
+                    theme: theme,
+                    isGodMode: false,
+                    isRunningOnMac: false,
+                    inputMode: .dig,
+                    hoveredIndex: .constant(nil),
+                    onTap: { _ in },
+                    onLongPress: { _ in },
+                    onRightClick: { _ in }
+                )
+                .equatable()
             }
-            
+
             // 底部控制栏
             VStack(spacing: 15) {
                 // 进度条
                 Slider(value: Binding(
                     get: { viewModel.progress },
                     set: { newVal in
-                        let step = Int(newVal * Double(viewModel.moves.count))
+                        let step = Int(newVal * Double(viewModel.movesCount))
                         viewModel.seek(to: step)
                     }
                 ))
@@ -102,7 +90,7 @@ struct ReplayView: View {
                         .symbolRenderingMode(.hierarchical)
                 }
                 
-                Text("\(localization.text(.stepCount)): \(viewModel.currentStepIndex) / \(viewModel.moves.count)")
+                Text("\(localization.text(.stepCount)): \(viewModel.currentStepIndex) / \(viewModel.movesCount)")
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .monospacedDigit()
@@ -111,16 +99,12 @@ struct ReplayView: View {
             .background(.ultraThinMaterial)
         }
         .navigationBarHidden(true)
+        .onDisappear {
+            viewModel.stop()
+        }
     }
     
     private func cycleSpeed() {
-        if viewModel.playbackSpeed == 1.0 { viewModel.playbackSpeed = 2.0 }
-        else if viewModel.playbackSpeed == 2.0 { viewModel.playbackSpeed = 4.0 }
-        else { viewModel.playbackSpeed = 1.0 }
-        
-        if viewModel.isPlaying {
-            viewModel.togglePlay()
-            viewModel.togglePlay()
-        }
+        viewModel.cycleSpeed()
     }
 }

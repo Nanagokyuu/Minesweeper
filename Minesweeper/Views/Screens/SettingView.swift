@@ -90,7 +90,7 @@ struct SettingsView: View {
                 Section(header: Text(localization.text(.dataManagement))) {
                     // 历史记录入口
                     NavigationLink {
-                        HistoryView(game: MinesweeperGame())
+                        HistoryView()
                     } label: {
                         HStack {
                             Image(systemName: "clock.arrow.circlepath")
@@ -106,8 +106,14 @@ struct SettingsView: View {
                             .foregroundColor(.blue)
                             .frame(width: 24)
                         VStack(alignment: .leading) {
-                            Text("iCloud Sync")
-                            if let date = cloudManager.lastSyncDate {
+                            Text(localization.text(.iCloudSync))
+                            if !cloudManager.isCloudAvailable {
+                                Text(localization.text(.iCloudUnavailable))
+                                    .font(.caption).foregroundColor(.secondary)
+                            } else if let error = cloudManager.lastError {
+                                Text(error)
+                                    .font(.caption).foregroundColor(.red)
+                            } else if let date = cloudManager.lastSyncDate {
                                 Text("\(localization.text(.lastSync)): \(date.formatted(date: .abbreviated, time: .shortened))")
                                     .font(.caption).foregroundColor(.secondary)
                             } else {
@@ -118,9 +124,9 @@ struct SettingsView: View {
                         Spacer()
                         if cloudManager.isSyncing {
                             ProgressView()
-                        } else {
+                        } else if cloudManager.isCloudAvailable {
                             Button(localization.text(.syncNow)) {
-                                cloudManager.downloadFromCloud()
+                                HistoryManager.shared.syncWithCloud()
                                 HapticManager.shared.light()
                             }
                             .font(.caption)
@@ -150,7 +156,7 @@ struct SettingsView: View {
                             .frame(width: 24)
                         Text(localization.text(.version))
                         Spacer()
-                        Text("v1.1")
+                        Text(versionText)
                             .foregroundColor(.secondary)
                             .font(.footnote)
                     }
@@ -189,7 +195,6 @@ struct SettingsView: View {
             .alert(localization.text(.clearAll), isPresented: $showClearHistoryAlert) {
                 Button(localization.text(.delete), role: .destructive) {
                     HistoryManager.shared.clear()
-                    CloudSyncManager.shared.uploadToCloud()
                     HapticManager.shared.heavy()
                 }
                 Button(localization.text(.cancel), role: .cancel) {}
@@ -199,6 +204,17 @@ struct SettingsView: View {
         }
     }
 }
+
+// MARK: - Helpers
+private extension SettingsView {
+    var versionText: String {
+        let info = Bundle.main.infoDictionary
+        let version = info?["CFBundleShortVersionString"] as? String ?? "1.1"
+        let build = info?["CFBundleVersion"] as? String ?? "2"
+        return "v\(version) (\(build))"
+    }
+}
+
 // MARK: - 语言选择子页面
 // 这里定义了 LanguagePickerView，确保它就在 SettingsView 下面
 struct LanguagePickerView: View {

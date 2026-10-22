@@ -8,15 +8,6 @@
 import SwiftUI
 import Combine
 
-// MARK: - 外观模式枚举
-// 强迫症患者的福音，不管是白天还是黑夜，我想黑就黑
-enum AppearanceMode: String, CaseIterable, Identifiable {
-    case system = "System"
-    case light = "Light"
-    case dark = "Dark"
-   
-    var id: String { rawValue }
-}
 // MARK: - 全局设置管理器
 // 这里存放着用户的所有偏好，哪怕删了 App...哦不对，删了 App 这里也会没的
 // 但是杀掉进程再进来，它还能记得你的癖好
@@ -59,10 +50,4 @@ class AppSettings: ObservableObject {
         return .classic
     }
    
-    // 切换主题
-    // 换个心情，换个手气
-    func updateTheme(_ theme: GameTheme) {
-        selectedThemeName = theme.name
-        // @Published 会自动通知界面更新，不需要手动发通知了
-    }
 }

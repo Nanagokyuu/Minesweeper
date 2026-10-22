@@ -1,0 +1,11 @@
+.DS_Store
+.build/
+DerivedData/
+build/
+*.xcuserstate
+xcuserdata/
+
+# Rust build outputs
+Rust/target/
+Rust/libs/
+Rust/generated/

@@ -28,8 +28,9 @@ struct ZoomableScrollView<Content: View>: UIViewRepresentable {
         scrollView.bouncesZoom = true // 弹性手感更愉悦
         scrollView.showsHorizontalScrollIndicator = false
         scrollView.showsVerticalScrollIndicator = false
-        // 【关键】：必须允许溢出，防止缩小时内容被切
-        scrollView.clipsToBounds = false
+        // Clip to the board frame so large boards cannot draw over the header
+        // and status bar.  Contents still center when zoomed out.
+        scrollView.clipsToBounds = true
         scrollView.backgroundColor = .clear
         
         // 关键：允许内容视图与 ScrollView 不同的交互
@@ -64,23 +65,16 @@ struct ZoomableScrollView<Content: View>: UIViewRepresentable {
         // 这个 targetSize 是“1倍缩放”下的理想尺寸
         let targetSize = hostedView.sizeThatFits(CGSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude))
         
-        // 【核心修复逻辑】：
-        // 之前的 bug 是：contentSize 是缩放后的大小（比如 2 倍），targetSize 是原始大小（1 倍）。
-        // 直接比较会导致代码以为尺寸变了，从而强制重置 Frame，导致画面跳动。
-        // 现在我们把当前的 contentSize 还原回 1 倍，再跟 targetSize 比较。
-        let currentUnscaledWidth = uiView.contentSize.width / uiView.zoomScale
-        let currentUnscaledHeight = uiView.contentSize.height / uiView.zoomScale
-        
-        // 只有当“实际内容结构”发生变化（比如切换难度、新开局）时，才重置布局
-        if abs(currentUnscaledWidth - targetSize.width) > 1.0 ||
-           abs(currentUnscaledHeight - targetSize.height) > 1.0 {
-            
-            // 重置 Frame 和 ContentSize
+        // Only reconfigure when the content size actually changes.  Comparing
+        // contentSize / zoomScale here would treat every zoom level as a
+        // "changed layout" and reset the user's zoom/pan on the next tap.
+        if context.coordinator.lastTargetSize != targetSize {
+            context.coordinator.lastTargetSize = targetSize
             hostedView.frame = CGRect(origin: .zero, size: targetSize)
             uiView.contentSize = targetSize
-            
-            // 只有在真的重置了布局（新开局）时，才把缩放归位
-            // 如果只是点击格子刷新界面，因为尺寸没变，不会进到这里，所以不会跳动
+
+            // Large boards are pre-scaled by the SwiftUI layout, so the scroll
+            // view starts at 1:1 and pinch-zoom remains under the user's control.
             uiView.zoomScale = 1.0
         }
     }
@@ -92,6 +86,7 @@ struct ZoomableScrollView<Content: View>: UIViewRepresentable {
     // MARK: - Coordinator
     class Coordinator: NSObject, UIScrollViewDelegate {
         var hostingController: UIHostingController<Content>
+        var lastTargetSize: CGSize?
         
         init(hostingController: UIHostingController<Content>) {
             self.hostingController = hostingController
