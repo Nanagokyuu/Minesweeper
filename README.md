@@ -24,14 +24,6 @@ macOS 版不是 Catalyst，也不是“Designed for iPad”：它使用独立的
 - **可自定义键位**：挖开/插旗/快速展开/新游戏都可以绑定多个键盘按键或鼠标按键；支持鼠标侧键（后退/前进）、任意组合键和鼠标中键，冲突的按键会自动从旧操作移走。左键与 Z 同义，右键与 X 同义。
 - **iCloud 历史**：基于 `NSUbiquitousKeyValueStore`；历史 JSON 用 `MSH1` + zlib 压缩（50 条地狱记录约 2MB → 约 255KB），上传前先 merge 云端，避免后写覆盖先写；删除用 tombstone（保留 90 天）、清空用 `clearedAt` 传播，空云端数据不会再误清本地；压缩/写盘在后台串行队列执行。需要自行配置 iCloud Key-Value Storage 能力。
 
-### 🖥️ macOS 原生界面
-
-![macOS 主界面](docs/macos/home.png)
-
-![macOS 对局](docs/macos/game.png)
-
-![macOS 自定义键位](docs/macos/input.png)
-
 ## 🧱 架构
 
 ```
