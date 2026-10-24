@@ -10,66 +10,6 @@
 import SwiftUI
 import UIKit
 
-// MARK: - Board geometry
-
-struct BoardMetrics: Equatable {
-    var cellSize: CGFloat = 35
-    var spacing: CGFloat = 2
-    var padding: CGFloat = 20
-
-    func size(rows: Int, cols: Int) -> CGSize {
-        CGSize(
-            width: padding * 2 + CGFloat(cols) * cellSize + CGFloat(max(0, cols - 1)) * spacing,
-            height: padding * 2 + CGFloat(rows) * cellSize + CGFloat(max(0, rows - 1)) * spacing
-        )
-    }
-
-    func rect(row: Int, col: Int) -> CGRect {
-        CGRect(
-            x: padding + CGFloat(col) * (cellSize + spacing),
-            y: padding + CGFloat(row) * (cellSize + spacing),
-            width: cellSize,
-            height: cellSize
-        )
-    }
-
-    func index(at point: CGPoint, rows: Int, cols: Int) -> Int? {
-        let x = point.x - padding
-        let y = point.y - padding
-        guard x >= 0, y >= 0 else { return nil }
-        let stride = cellSize + spacing
-        let col = Int(x / stride)
-        let row = Int(y / stride)
-        guard row >= 0, row < rows, col >= 0, col < cols else { return nil }
-        let localX = x - CGFloat(col) * stride
-        let localY = y - CGFloat(row) * stride
-        guard localX <= cellSize, localY <= cellSize else { return nil }
-        return row * cols + col
-    }
-
-    /// Fits a board into the available space.  Used by both the SwiftUI grid
-    /// and the Canvas so an iPhone Duo (466x678 folded, 669x951 unfolded) and a
-    /// regular iPhone all show the complete board without manual panning.
-    static func fitted(
-        in available: CGSize,
-        rows: Int,
-        cols: Int,
-        minCell: CGFloat = 8,
-        maxCell: CGFloat = 56,
-        padding: CGFloat = 16,
-        spacing: CGFloat = 2
-    ) -> BoardMetrics {
-        guard rows > 0, cols > 0 else { return BoardMetrics() }
-        let horizontalChrome = padding * 2 + CGFloat(max(0, cols - 1)) * spacing
-        let verticalChrome = padding * 2 + CGFloat(max(0, rows - 1)) * spacing
-        let widthLimited = (available.width - horizontalChrome) / CGFloat(cols)
-        let heightLimited = (available.height - verticalChrome) / CGFloat(rows)
-        let ideal = min(widthLimited, heightLimited)
-        let cellSize = min(maxCell, max(minCell, ideal.rounded(.down)))
-        return BoardMetrics(cellSize: cellSize, spacing: spacing, padding: padding)
-    }
-}
-
 // MARK: - Board façade
 
 struct GameBoardView: View, Equatable {
@@ -275,8 +215,18 @@ struct CanvasBoardView: View {
     @State private var isAnimating = false
     @State private var animationTask: Task<Void, Never>?
 
+    /// Matches CellView's reveal spring (response 0.6).
+    private static let revealDuration: TimeInterval = 0.6
+    /// The spring is visually settled by then; no need to keep the 30 fps
+    /// timeline alive for the long, invisible tail.
+    private static let revealSettleDuration: TimeInterval = 0.4
+
     private var contentSize: CGSize {
         metrics.size(rows: rows, cols: cols)
+    }
+
+    private var shouldAnimate: Bool {
+        !reduceMotion
     }
 
     var body: some View {
@@ -310,7 +260,7 @@ struct CanvasBoardView: View {
             handleCellsChanged(newCells)
         }
         .onDisappear {
-            animationTask?.cancel()
+            resetAnimation(count: cells.count)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(
@@ -329,18 +279,20 @@ struct CanvasBoardView: View {
         previousCells = newCells
 
         guard old.count == newCells.count else {
-            animationTask?.cancel()
-            isAnimating = false
-            animatingCells = Array(repeating: false, count: newCells.count)
-            cellStartTimes = Array(repeating: nil, count: newCells.count)
+            resetAnimation(count: newCells.count)
+            return
+        }
+
+        // A new game or a replay jump can replace the board without changing
+        // its cell count.  Cancel the old ripple instead of letting stale
+        // animating flags turn newly covered cells into fake revealed faces.
+        if newCells.indices.contains(where: { old[$0].isRevealed && !newCells[$0].isRevealed }) {
+            resetAnimation(count: newCells.count)
             return
         }
 
         if reduceMotion {
-            animationTask?.cancel()
-            isAnimating = false
-            animatingCells = Array(repeating: false, count: newCells.count)
-            cellStartTimes = Array(repeating: nil, count: newCells.count)
+            resetAnimation(count: newCells.count)
             return
         }
 
@@ -370,7 +322,9 @@ struct CanvasBoardView: View {
         var end = now
         for index in newCells.indices where animatingCells[index] {
             guard let start = cellStartTimes[index] else { continue }
-            let finish = start.addingTimeInterval(newCells[index].animationDelay + 0.30)
+            let finish = start.addingTimeInterval(
+                newCells[index].animationDelay + Self.revealSettleDuration + 0.05
+            )
             if finish > end { end = finish }
         }
         if hasExplosion {
@@ -389,15 +343,57 @@ struct CanvasBoardView: View {
         }
     }
 
-    private func revealProgress(index: Int, cell: Cell, date: Date?) -> Double {
-        guard cell.isRevealed else { return 0 }
-        guard let date, isAnimating,
-              index < animatingCells.count, animatingCells[index],
-              index < cellStartTimes.count, let start = cellStartTimes[index] else {
-            return 1
+    private func resetAnimation(count: Int) {
+        animationTask?.cancel()
+        isAnimating = false
+        animatingCells = Array(repeating: false, count: count)
+        cellStartTimes = Array(repeating: nil, count: count)
+    }
+
+    private struct RevealAnimation {
+        /// 0 = covered face, 0.5 = edge-on, 1 = fully revealed face.
+        let flip: Double
+        /// Number glyph pop-in, which CellView animates separately.
+        let glyph: Double
+    }
+
+    private func isAnimatingCell(_ index: Int) -> Bool {
+        isAnimating
+            && index >= 0
+            && index < animatingCells.count
+            && animatingCells[index]
+    }
+
+    private func revealAnimation(index: Int, cell: Cell, date: Date?) -> RevealAnimation {
+        guard cell.isRevealed,
+              let date,
+              isAnimatingCell(index),
+              index < cellStartTimes.count,
+              let start = cellStartTimes[index] else {
+            return RevealAnimation(flip: 1, glyph: 1)
         }
-        let elapsed = date.timeIntervalSince(start) - cell.animationDelay
-        return min(1, max(0, elapsed / 0.26))
+
+        let elapsed = max(0, date.timeIntervalSince(start) - cell.animationDelay)
+
+        // Same normalized motion as CellView's
+        // .spring(response: 0.6, dampingFraction: 0.75).
+        let zeta = 0.75
+        let omega = 2 * Double.pi / Self.revealDuration
+        let dampedOmega = omega * (1 - zeta * zeta).squareRoot()
+        let envelope = exp(-zeta * omega * elapsed)
+        let rawFlip = 1 - envelope * (
+            cos(dampedOmega * elapsed)
+                + (zeta * omega / dampedOmega) * sin(dampedOmega * elapsed)
+        )
+        let flip = min(1, max(0, rawFlip))
+
+        // CellView runs the number's 0.3 s ease-out scale/fade in parallel
+        // with the flip.
+        let glyphT = min(1, elapsed / 0.3)
+        let glyphRemaining = 1 - glyphT
+        let glyph = 1 - glyphRemaining * glyphRemaining
+
+        return RevealAnimation(flip: flip, glyph: glyph)
     }
 
     private var cellCornerRadius: CGFloat {
@@ -422,8 +418,12 @@ struct CanvasBoardView: View {
         let mineText = context.resolve(
             Text(theme.explosionIcon).font(.system(size: mineSize))
         )
+        // Match CellView's flag (orange SF Symbol) instead of the multicolor
+        // emoji, so hell boards and the small grid look the same.
         let flagText = context.resolve(
-            Text("🚩").font(.system(size: flagSize))
+            Text(Image(systemName: theme.flagIcon))
+                .font(.system(size: flagSize))
+                .foregroundColor(.orange)
         )
 
         var coveredPath = Path()
@@ -431,29 +431,29 @@ struct CanvasBoardView: View {
         var revealedPath = Path()
         var triggeredPath = Path()
         var explodingPath = Path()
-        var fading: [(rect: CGRect, alpha: Double, flagged: Bool, isMine: Bool)] = []
 
+        // Static cells stay batched.  Cells that are mid-flip are drawn one by
+        // one with a horizontal squash, mirroring CellView's 3D flip.
         for row in 0..<rows {
             for col in 0..<cols {
                 let index = row * cols + col
                 guard index < cells.count else { continue }
                 let cell = cells[index]
                 let rect = metrics.rect(row: row, col: col)
-                let progress = reduceMotion ? 1 : revealProgress(index: index, cell: cell, date: date)
+                let animating = shouldAnimate && isAnimatingCell(index)
 
-                if cell.isRevealed {
-                    if cell.isMine && cell.isTriggeredMine {
-                        triggeredPath.addRoundedRect(in: rect, cornerSize: corner)
+                if !animating {
+                    if cell.isRevealed {
+                        if cell.isMine && cell.isTriggeredMine {
+                            triggeredPath.addRoundedRect(in: rect, cornerSize: corner)
+                        } else {
+                            revealedPath.addRoundedRect(in: rect, cornerSize: corner)
+                        }
+                    } else if isGodMode && cell.isMine {
+                        coveredMinePath.addRoundedRect(in: rect, cornerSize: corner)
                     } else {
-                        revealedPath.addRoundedRect(in: rect, cornerSize: corner)
+                        coveredPath.addRoundedRect(in: rect, cornerSize: corner)
                     }
-                    if progress < 1 {
-                        fading.append((rect, 1 - progress, cell.isFlagged, cell.isMine))
-                    }
-                } else if isGodMode && cell.isMine {
-                    coveredMinePath.addRoundedRect(in: rect, cornerSize: corner)
-                } else {
-                    coveredPath.addRoundedRect(in: rect, cornerSize: corner)
                 }
 
                 if cell.isExploding {
@@ -475,21 +475,23 @@ struct CanvasBoardView: View {
             context.fill(coveredMinePath, with: .color(.orange))
         }
 
-        // Only animating cells need an individual alpha-blended cover.
-        for overlay in fading {
-            let color = overlay.isMine ? Color.orange : theme.coveredColor
-            var faded = context
-            faded.fill(
-                Path(roundedRect: overlay.rect, cornerRadius: cellCornerRadius),
-                with: .color(color.opacity(overlay.alpha))
-            )
-            if overlay.flagged {
-                faded.opacity = overlay.alpha
-                faded.draw(
-                    flagText,
-                    at: CGPoint(x: overlay.rect.midX, y: overlay.rect.midY),
-                    anchor: .center
-                )
+        // Per-cell flip for cells revealed by the current ripple.
+        if isAnimating {
+            for row in 0..<rows {
+                for col in 0..<cols {
+                    let index = row * cols + col
+                    guard index < cells.count, isAnimatingCell(index) else { continue }
+                    let cell = cells[index]
+                    drawAnimatingCell(
+                        cell,
+                        rect: metrics.rect(row: row, col: col),
+                        animation: revealAnimation(index: index, cell: cell, date: date),
+                        context: context,
+                        numberTexts: numberTexts,
+                        mineText: mineText,
+                        flagText: flagText
+                    )
+                }
             }
         }
 
@@ -499,6 +501,7 @@ struct CanvasBoardView: View {
             for col in 0..<cols {
                 let index = row * cols + col
                 guard index < cells.count else { continue }
+                guard !(shouldAnimate && isAnimatingCell(index)) else { continue }
                 let cell = cells[index]
                 let rect = metrics.rect(row: row, col: col)
                 let center = CGPoint(x: rect.midX, y: rect.midY)
@@ -525,6 +528,114 @@ struct CanvasBoardView: View {
         }
     }
 
+    private func drawAnimatingCell(
+        _ cell: Cell,
+        rect: CGRect,
+        animation: RevealAnimation,
+        context: GraphicsContext,
+        numberTexts: [GraphicsContext.ResolvedText?],
+        mineText: GraphicsContext.ResolvedText,
+        flagText: GraphicsContext.ResolvedText
+    ) {
+        let flip = min(1, max(0, animation.flip))
+        let glyph = min(1, max(0, animation.glyph))
+        let scaleX = max(0.001, abs(flip * 2 - 1))
+
+        // CellView keeps both faces alive and puts the revealed face on top
+        // while the covered face fades out, so composite them the same way.
+        drawCoveredFace(
+            cell,
+            rect: rect,
+            scaleX: scaleX,
+            opacity: 1 - flip,
+            context: context,
+            flagText: flagText
+        )
+        drawRevealedFace(
+            cell,
+            rect: rect,
+            scaleX: scaleX,
+            opacity: flip,
+            glyph: glyph,
+            context: context,
+            numberTexts: numberTexts,
+            mineText: mineText
+        )
+    }
+
+    private func scaledContext(
+        _ context: GraphicsContext,
+        rect: CGRect,
+        scaleX: CGFloat
+    ) -> GraphicsContext {
+        let center = CGPoint(x: rect.midX, y: rect.midY)
+        var scaled = context
+        scaled.translateBy(x: center.x, y: center.y)
+        scaled.scaleBy(x: scaleX, y: 1)
+        scaled.translateBy(x: -center.x, y: -center.y)
+        return scaled
+    }
+
+    private func drawCoveredFace(
+        _ cell: Cell,
+        rect: CGRect,
+        scaleX: CGFloat,
+        opacity: Double,
+        context: GraphicsContext,
+        flagText: GraphicsContext.ResolvedText
+    ) {
+        guard opacity > 0.001 else { return }
+        let center = CGPoint(x: rect.midX, y: rect.midY)
+        let background = Path(roundedRect: rect, cornerRadius: cellCornerRadius)
+        var face = scaledContext(context, rect: rect, scaleX: scaleX)
+        face.opacity = opacity
+        let color = (isGodMode && cell.isMine) ? Color.orange : theme.coveredColor
+        face.fill(background, with: .color(color))
+        if cell.isFlagged {
+            face.draw(flagText, at: center, anchor: .center)
+        }
+    }
+
+    private func drawRevealedFace(
+        _ cell: Cell,
+        rect: CGRect,
+        scaleX: CGFloat,
+        opacity: Double,
+        glyph: Double,
+        context: GraphicsContext,
+        numberTexts: [GraphicsContext.ResolvedText?],
+        mineText: GraphicsContext.ResolvedText
+    ) {
+        guard opacity > 0.001 else { return }
+        let center = CGPoint(x: rect.midX, y: rect.midY)
+        let background = Path(roundedRect: rect, cornerRadius: cellCornerRadius)
+        var face = scaledContext(context, rect: rect, scaleX: scaleX)
+        face.opacity = opacity
+        if cell.isMine && cell.isTriggeredMine {
+            face.fill(background, with: .color(.red))
+        } else {
+            face.fill(background, with: .color(Color.cellRevealed))
+        }
+
+        if cell.isMine {
+            var glyphContext = face
+            let mineScale = 0.1 + 0.9 * opacity
+            glyphContext.translateBy(x: center.x, y: center.y)
+            glyphContext.scaleBy(x: mineScale, y: mineScale)
+            glyphContext.translateBy(x: -center.x, y: -center.y)
+            glyphContext.draw(mineText, at: center, anchor: .center)
+        } else if cell.neighborMines > 0,
+                  let text = numberTexts[cell.neighborMines - 1] {
+            var glyphContext = face
+            glyphContext.opacity = opacity * glyph
+            let numberScale = 0.5 + 0.5 * glyph
+            glyphContext.translateBy(x: center.x, y: center.y)
+            glyphContext.scaleBy(x: numberScale, y: numberScale)
+            glyphContext.translateBy(x: -center.x, y: -center.y)
+            glyphContext.draw(text, at: center, anchor: .center)
+        }
+    }
+
     private static let numberPalette: [Color] = [
         .blue, .green, .red, .purple, .orange, .cyan, .primary, .secondary,
     ]
@@ -535,6 +646,16 @@ struct CanvasBoardView: View {
 }
 
 // MARK: - Gesture overlay for Canvas
+
+/// Tap recognizer that only accepts secondary-button events.  Filtering on the
+/// event's button mask keeps it inert for direct finger touches, while still
+/// recognizing right-clicks from mice and trackpads (even when the system
+/// delivers them as compatibility touches).
+private final class SecondaryClickTapGestureRecognizer: UITapGestureRecognizer {
+    override func shouldReceive(_ event: UIEvent) -> Bool {
+        event.buttonMask.contains(.secondary)
+    }
+}
 
 struct BoardGestureOverlay: UIViewRepresentable {
     let metrics: BoardMetrics
@@ -565,12 +686,14 @@ struct BoardGestureOverlay: UIViewRepresentable {
         tap.require(toFail: longPress)
 
         // iOS apps on Apple silicon Macs deliver secondary clicks through this
-        // gesture; on iOS it is inert.
-        let rightClick = UITapGestureRecognizer(
+        // gesture.  A finger touch has no mouse buttons, so checking the button
+        // mask on the recognizer alone still lets it win over the deferred
+        // single-tap gesture and every touch on a Canvas board (hell on iOS)
+        // becomes a flag.  The subclass filters the actual event mask instead.
+        let rightClick = SecondaryClickTapGestureRecognizer(
             target: context.coordinator,
             action: #selector(Coordinator.handleRightClick(_:))
         )
-        rightClick.buttonMaskRequired = .secondary
         rightClick.cancelsTouchesInView = false
 
         let hover = UIHoverGestureRecognizer(

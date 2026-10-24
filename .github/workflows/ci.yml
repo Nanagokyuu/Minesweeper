@@ -16,8 +16,8 @@ jobs:
           toolchain: "1.98.0"
           components: clippy, rustfmt
 
-      - name: Add iOS targets
-        run: rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios
+      - name: Add targets
+        run: rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios aarch64-apple-darwin x86_64-apple-darwin
 
       - name: Format
         run: cargo fmt --manifest-path Rust/Cargo.toml -- --check
@@ -56,4 +56,26 @@ jobs:
             -project Minesweeper.xcodeproj \
             -scheme Minesweeper \
             -destination 'platform=iOS Simulator,name=iPhone 16' \
+            CODE_SIGNING_ALLOWED=NO
+
+  macos:
+    name: macOS build
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.98.0"
+
+      - name: Add macOS targets
+        run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
+
+      - name: Build
+        run: |
+          xcodebuild build \
+            -project Minesweeper.xcodeproj \
+            -scheme MinesweeperMac \
+            -configuration Release \
+            -destination 'platform=macOS' \
             CODE_SIGNING_ALLOWED=NO

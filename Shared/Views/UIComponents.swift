@@ -22,7 +22,7 @@ struct ModeButton: View {
             }
             .frame(maxWidth: .infinity).frame(height: 70)
             // 【修改】背景色自适应：选中时保持彩色，未选中时适应深色模式(变黑灰)
-            .background(isSelected ? color : Color(UIColor.secondarySystemGroupedBackground))
+            .background(isSelected ? color : Color.secondaryGroupedBackground)
             // 【修改】文字颜色自适应：选中时白，未选中时适应系统(黑变白)
             .foregroundColor(isSelected ? .white : .gray)
             .cornerRadius(15)
@@ -65,7 +65,7 @@ struct DifficultyButton: View {
             }
             .padding()
             // 【修改】背景使用系统二级分组背景，深色模式下会是深灰色
-            .background(isSelected ? Color(UIColor.secondarySystemGroupedBackground) : Color(UIColor.secondarySystemGroupedBackground).opacity(0.5))
+            .background(isSelected ? Color.secondaryGroupedBackground : Color.secondaryGroupedBackground.opacity(0.5))
             .cornerRadius(12)
             .overlay(
                 RoundedRectangle(cornerRadius: 12)

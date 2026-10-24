@@ -32,6 +32,18 @@ class AppSettings: ObservableObject {
     @Published var selectedThemeName: String {
         didSet { UserDefaults.standard.set(selectedThemeName, forKey: "selectedThemeName") }
     }
+
+    // MARK: - 键位
+    // 每个操作可以拥有多个键盘/鼠标绑定。JSON 存进 UserDefaults，方便以后
+    // 和 iOS 共用同一套输入模型。
+    @Published var inputBindings: InputBindings {
+        didSet {
+            guard let data = try? JSONEncoder().encode(inputBindings) else { return }
+            UserDefaults.standard.set(data, forKey: Self.inputBindingsKey)
+        }
+    }
+
+    private static let inputBindingsKey = "inputBindings_v1"
    
     // MARK: - 初始化
     // 从 UserDefaults 加载“记忆”，如果失忆了就用默认值
@@ -39,6 +51,12 @@ class AppSettings: ObservableObject {
         self.isHapticsEnabled = UserDefaults.standard.object(forKey: "isHapticsEnabled") as? Bool ?? true
         self.isNoGuessingEnabled = UserDefaults.standard.object(forKey: "isNoGuessingEnabled") as? Bool ?? true
         self.selectedThemeName = UserDefaults.standard.string(forKey: "selectedThemeName") ?? "Classic"
+        if let data = UserDefaults.standard.data(forKey: Self.inputBindingsKey),
+           let decoded = try? JSONDecoder().decode(InputBindings.self, from: data) {
+            self.inputBindings = decoded
+        } else {
+            self.inputBindings = .default
+        }
     }
    
     // MARK: - 辅助属性

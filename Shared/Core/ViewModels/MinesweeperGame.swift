@@ -309,8 +309,14 @@ final class MinesweeperGame: ObservableObject {
     }
 
     private static var batteryPercent: Int32 {
+        #if os(iOS)
         UIDevice.current.isBatteryMonitoringEnabled = true
         let level = UIDevice.current.batteryLevel
         return level >= 0 ? Int32((level * 100).rounded()) : 100
+        #else
+        // Macs have no battery input for the seed mix; the seed already uses
+        // time and nanoseconds, so a constant here only changes distribution.
+        return 100
+        #endif
     }
 }

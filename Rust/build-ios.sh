@@ -14,6 +14,8 @@ export PATH="${HOME}/.cargo/bin:/usr/local/bin:/opt/homebrew/bin:${PATH}"
 DEVICE_TARGET="aarch64-apple-ios"
 SIM_ARM_TARGET="aarch64-apple-ios-sim"
 SIM_X86_TARGET="x86_64-apple-ios"
+MAC_ARM_TARGET="aarch64-apple-darwin"
+MAC_X86_TARGET="x86_64-apple-darwin"
 
 build_target() {
   local target="$1"
@@ -55,6 +57,21 @@ build_simulator() {
   lipo -create "${libs[@]}" -output libs/iphonesimulator/libminesweeper_core.a
 }
 
+# macOS needs a universal static library so the same app bundle runs on Apple
+# silicon and Intel Macs.
+build_mac() {
+  local targets=("${MAC_ARM_TARGET}" "${MAC_X86_TARGET}")
+  local libs=()
+  local target
+  for target in "${targets[@]}"; do
+    build_target "${target}"
+    libs+=("target/${target}/release/libminesweeper_core.a")
+  done
+
+  mkdir -p libs/macosx
+  lipo -create "${libs[@]}" -output libs/macosx/libminesweeper_core.a
+}
+
 # Xcode exports PLATFORM_NAME/ARCHS to the script phase.  Keep the old
 # "build everything" behaviour for direct terminal use.
 case "${PLATFORM_NAME:-}" in
@@ -68,10 +85,18 @@ case "${PLATFORM_NAME:-}" in
     echo "Rust core built:"
     ls -lh libs/iphonesimulator/libminesweeper_core.a
     ;;
+  macosx)
+    build_mac
+    echo "Rust core built:"
+    ls -lh libs/macosx/libminesweeper_core.a
+    ;;
   *)
     build_device
     build_simulator
+    build_mac
     echo "Rust core built:"
-    ls -lh libs/iphoneos/libminesweeper_core.a libs/iphonesimulator/libminesweeper_core.a
+    ls -lh libs/iphoneos/libminesweeper_core.a \
+      libs/iphonesimulator/libminesweeper_core.a \
+      libs/macosx/libminesweeper_core.a
     ;;
 esac

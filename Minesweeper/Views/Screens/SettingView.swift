@@ -209,7 +209,7 @@ struct SettingsView: View {
 private extension SettingsView {
     var versionText: String {
         let info = Bundle.main.infoDictionary
-        let version = info?["CFBundleShortVersionString"] as? String ?? "1.1"
+        let version = info?["CFBundleShortVersionString"] as? String ?? "1.2.1"
         let build = info?["CFBundleVersion"] as? String ?? "2"
         return "v\(version) (\(build))"
     }

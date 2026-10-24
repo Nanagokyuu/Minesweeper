@@ -177,6 +177,31 @@ enum LocalizedKey: CaseIterable {
     case betterLuckNextTime
     case keyZDig
     case keyXFlag
+
+    // 输入 / 键位
+    case inputSettings
+    case inputSettingsDesc
+    case inputActionDig
+    case inputActionFlag
+    case inputActionChord
+    case inputActionNewGame
+    case inputAdd
+    case inputPressPrompt
+    case inputReset
+    case inputMouseLeft
+    case inputMouseRight
+    case inputMouseMiddle
+    case inputMouseSideBack
+    case inputMouseSideForward
+    case inputMouseButton
+    case backToHome
+    case newGame
+    case inputHint
+    case inputConflictFormat
+    case gameMenu
+    case howToPlay
+    case ruleDigDesktop
+    case ruleFlagDesktop
     
     func localized(for language: AppLanguage) -> String {
         switch language {
@@ -271,6 +296,29 @@ enum LocalizedKey: CaseIterable {
         case .version: return "版本"
         case .keyZDig: return "Z键: 挖雷"
         case .keyXFlag: return "X键: 插旗"
+        case .inputSettings: return "按键与鼠标"
+        case .inputSettingsDesc: return "同一个操作可以绑定多个键盘按键或鼠标按键；鼠标侧键也支持。"
+        case .inputActionDig: return "挖开"
+        case .inputActionFlag: return "插旗"
+        case .inputActionChord: return "快速展开"
+        case .inputActionNewGame: return "新游戏"
+        case .inputAdd: return "添加按键"
+        case .inputPressPrompt: return "请按下键盘按键，或点击鼠标按键…（Esc 取消）"
+        case .inputReset: return "恢复默认键位"
+        case .inputMouseLeft: return "鼠标左键"
+        case .inputMouseRight: return "鼠标右键"
+        case .inputMouseMiddle: return "鼠标中键"
+        case .inputMouseSideBack: return "鼠标侧键 1"
+        case .inputMouseSideForward: return "鼠标侧键 2"
+        case .inputMouseButton: return "鼠标按键 %d"
+        case .backToHome: return "返回主页"
+        case .newGame: return "新游戏"
+        case .inputHint: return "左键/右键或自定义键位均可操作；双击已翻开的数字可快速展开。"
+        case .inputConflictFormat: return "「%@」原本绑定在「%@」，已自动移到这里。"
+        case .gameMenu: return "游戏"
+        case .howToPlay: return "玩法"
+        case .ruleDigDesktop: return "左键或自定义键位翻开格子"
+        case .ruleFlagDesktop: return "右键或自定义键位标记地雷"
         case .betterLuckNextTime: return "下次好运."
         }
     }
@@ -359,6 +407,29 @@ enum LocalizedKey: CaseIterable {
         case .version: return "Version"
         case .keyZDig: return "Z: Dig"
         case .keyXFlag: return "X: Flag"
+        case .inputSettings: return "Input"
+        case .inputSettingsDesc: return "One action can have several keyboard or mouse bindings. Mouse side buttons are supported."
+        case .inputActionDig: return "Dig"
+        case .inputActionFlag: return "Flag"
+        case .inputActionChord: return "Quick Reveal"
+        case .inputActionNewGame: return "New Game"
+        case .inputAdd: return "Add Binding"
+        case .inputPressPrompt: return "Press a key or click a mouse button… (Esc to cancel)"
+        case .inputReset: return "Restore Defaults"
+        case .inputMouseLeft: return "Left Click"
+        case .inputMouseRight: return "Right Click"
+        case .inputMouseMiddle: return "Middle Click"
+        case .inputMouseSideBack: return "Side Button 1"
+        case .inputMouseSideForward: return "Side Button 2"
+        case .inputMouseButton: return "Mouse Button %d"
+        case .backToHome: return "Back to Home"
+        case .newGame: return "New Game"
+        case .inputHint: return "Left/right click and custom bindings work on any cell; double-click a revealed number to chord."
+        case .inputConflictFormat: return "\u{201C}%@\u{201D} was bound to \u{201C}%@\u{201D} and has been moved here."
+        case .gameMenu: return "Game"
+        case .howToPlay: return "How to Play"
+        case .ruleDigDesktop: return "Left click or a custom binding reveals cells"
+        case .ruleFlagDesktop: return "Right click or a custom binding marks mines"
         case .betterLuckNextTime: return "Better luck next time."
         }
     }
@@ -447,6 +518,29 @@ enum LocalizedKey: CaseIterable {
         case .version: return "版本"
         case .keyZDig: return "Z鍵: 挖雷"
         case .keyXFlag: return "X鍵: 插旗"
+        case .inputSettings: return "按鍵與滑鼠"
+        case .inputSettingsDesc: return "同一個操作可以綁定多個鍵盤按鍵或滑鼠按鍵；滑鼠側鍵也支援。"
+        case .inputActionDig: return "挖開"
+        case .inputActionFlag: return "插旗"
+        case .inputActionChord: return "快速展開"
+        case .inputActionNewGame: return "新遊戲"
+        case .inputAdd: return "新增按鍵"
+        case .inputPressPrompt: return "請按下鍵盤按鍵，或點擊滑鼠按鍵…（Esc 取消）"
+        case .inputReset: return "恢復預設鍵位"
+        case .inputMouseLeft: return "滑鼠左鍵"
+        case .inputMouseRight: return "滑鼠右鍵"
+        case .inputMouseMiddle: return "滑鼠中鍵"
+        case .inputMouseSideBack: return "滑鼠側鍵 1"
+        case .inputMouseSideForward: return "滑鼠側鍵 2"
+        case .inputMouseButton: return "滑鼠按鍵 %d"
+        case .backToHome: return "返回主頁"
+        case .newGame: return "新遊戲"
+        case .inputHint: return "左鍵/右鍵或自訂鍵位均可操作；雙擊已翻開的數字可快速展開。"
+        case .inputConflictFormat: return "「%@」原本綁定在「%@」，已自動移到這裡。"
+        case .gameMenu: return "遊戲"
+        case .howToPlay: return "玩法"
+        case .ruleDigDesktop: return "左鍵或自訂鍵位翻開格子"
+        case .ruleFlagDesktop: return "右鍵或自訂鍵位標記地雷"
         case .betterLuckNextTime: return "下次好運."
         }
     }
@@ -535,6 +629,29 @@ enum LocalizedKey: CaseIterable {
         case .version: return "バージョン"
         case .keyZDig: return "Z: 掘る"
         case .keyXFlag: return "X: 旗"
+        case .inputSettings: return "入力"
+        case .inputSettingsDesc: return "1つの操作に複数のキーボード／マウスボタンを割り当てられます。マウスのサイドボタンにも対応しています。"
+        case .inputActionDig: return "掘る"
+        case .inputActionFlag: return "旗"
+        case .inputActionChord: return "クイック展開"
+        case .inputActionNewGame: return "新しいゲーム"
+        case .inputAdd: return "入力を追加"
+        case .inputPressPrompt: return "キーを押すか、マウスボタンを押してください…（Esc でキャンセル）"
+        case .inputReset: return "デフォルトに戻す"
+        case .inputMouseLeft: return "マウス左ボタン"
+        case .inputMouseRight: return "マウス右ボタン"
+        case .inputMouseMiddle: return "マウス中ボタン"
+        case .inputMouseSideBack: return "サイドボタン 1"
+        case .inputMouseSideForward: return "サイドボタン 2"
+        case .inputMouseButton: return "マウスボタン %d"
+        case .backToHome: return "ホームに戻る"
+        case .newGame: return "新しいゲーム"
+        case .inputHint: return "左右クリックやカスタムキーで操作できます。開いた数字をダブルクリックするとクイック展開します。"
+        case .inputConflictFormat: return "「%@」は「%@」に割り当てられていたため、こちらへ移動しました。"
+        case .gameMenu: return "ゲーム"
+        case .howToPlay: return "遊び方"
+        case .ruleDigDesktop: return "左クリックまたはカスタムキーでマスを開く"
+        case .ruleFlagDesktop: return "右クリックまたはカスタムキーで地雷をマーク"
         case .betterLuckNextTime: return "次回がんばって."
         }
     }
